@@ -1,51 +1,43 @@
-# 知识库 Web 用户端
+# 知识库用户端
 
-PRD-100-01-01 初始化工程。独立于若依管理端，复用现有知识库后端和数据；当前仅提供基础能力预览，业务接口和制作流程尚未联调。
+手机优先的 uni-app Vue3 + TypeScript + Pinia + uview-plus 页面骨架，目标为 Web、微信小程序、标准 App Vue。与现有管理端分开维护，后续复用同一知识库后端。
 
-## 运行
+当前已有「工作台 / 题库 / 记录 / 我的」四个入口、制作配置、资料详情、记录详情、结果、排版经验与预览、发布准备、教学工具及偏好设置。页面内为明确标注的示例数据，真实制作/上传/发布尚未接入。
 
-Node.js 24（本轮 24.22.1）、npm 11。首次从仓库取回后：
+## 本机预览
+
+Node.js 24、npm 11（本轮24.22.1 / 11.19.1），按锁文件安装：
 
 ```bash
 npm ci
 npm run dev
 ```
 
-打开 <http://127.0.0.1:5193>。只监听本机回环地址，端口被占用会报错。不会切换现有 5173/8080 服务。
+打开 <http://127.0.0.1:5193>，仅监听本机回环。现有管理端5173、后端8080继续独立运行。开发组件预览：<http://127.0.0.1:5193/#/pages/ui/index>。
+
+## 验证与三端构建
 
 ```bash
 npm run lint
 npm run type-check
 npm test
-npm run build
+npm run build:all
+npm run test:architecture
 npx playwright install chromium
 npm run test:ui
+npm run test:skeleton
 ```
 
-生产文件在 `dist/build/h5/`，采用 hash 路由。该目录是构建结果，不提交 Git。本轮仅代码托管，不配置 Pages 或公网部署。浏览器验证会把截图和报告保存到 `test-results/`；GitHub 自动检查暂未配置。
+`build:h5`输出`dist/build/h5`；`build:mp-weixin`输出`dist/build/mp-weixin`；`build:app`输出`dist/build/app`。开发命令分别是`dev:h5`、`dev:mp-weixin`、`dev:app`。图标资产在构建/启动前从锁定的依赖包自动生成，无外部CDN依赖。`tools/prepare-icons.mjs`仅生成本应用字体，`tools/check-boundaries.mjs`只读检查分层与产物。
 
-## 配置与目录
+Web生产浏览器验证覆盖360/390/430/1280宽度，截图和报告在忽略提交的`test-results`。小程序与App仅完成独立编译；导入对应开发工具、真实AppID、基座/真机、权限与签名打包仍待验证。App资源构建不是apk/ipa；App任意PDF选择还需原生能力，当前显式禁用。
 
-`.env.example` 是公开配置示例；不填 API 地址也可打开基础预览。需要接入时复制为 `.env.local`，设置 `VITE_API_BASE_URL` 并重新启动或构建，例如同源路径 `/api`。`VITE_WEB_BASE` 控制静态资源部署前缀。所有 `VITE_*` 会进入浏览器产物，严禁填写密码、令牌、签名链接或私有服务器配置。
+## 维护入口
 
-|目录|职责|
-|---|---|
-|`src/pages`|页面组合及路由上下文|
-|`src/components/ui`|uview-plus 薄封装，不含业务 URL|
-|`src/components/business`|配置预览交互|
-|`src/core`|无 Vue/DOM/uni 依赖的类型、校验和端口|
-|`src/api`|注入请求及会话的客户端，检查若依业务响应码；尚无拟造业务端点|
-|`src/adapters/web`|uni.request、会话、导航、浏览器文件/PDF能力|
-|`src/stores`|本次配置状态；内存保存，刷新清空|
-|`src/styles`|颜色、间距等基础样式|
-|`tests`|核心边界测试与生产构建浏览器检查|
+详见[页面与持续开发](docs/development.md)、[本仓库约定](AGENTS.md)。分层为`pages`→`components/business`→`core`，通用组件在`components/ui`，状态在`stores`，平台差异在`adapters/platform`，H5专用能力在`adapters/web`。三类对象由`core/skeleton.ts`定义，示例单独放`fixtures`。`npm run format`格式化源码。
 
-文件预览只接受 PDF、PNG、JPEG、GIF，限制 20 MB，检查文件签名字节；不上传文件。PDF 使用浏览器原生 iframe 预览，可下载原字节；浏览器不支持内嵌 PDF 时可下载打开。临时对象 URL 在替换和离开时释放。原生文件输入、图片与 iframe 均隔离在 Web 适配层；没有承诺跨端兼容。答案开关默认开启，预览答案为红色；关闭后从弹层中移除答案节点。
+`.env.example`说明API环境配置；不配置也能预览。`VITE_API_BASE_URL`控制接入地址，`VITE_WEB_BASE`控制H5静态资源前缀。所有`VITE_*`均为客户端公开信息，不填写凭据。配置仅保存在当前内存会话，刷新清空。正式数据分页、权限和任务调度由后续接口接入承接。
 
-## 模板与组件兼容
+[初始版本记录](docs/initialization.md)保留旧Web基线与依赖审计背景。官方DCloud编译链版本一致锁定，Vite5.2.8为其精确peer，不以强制升级跳过兼容检查。当前构建与页面验证不替代生产安全审查。
 
-基于 [DCloud 官方 Vue3/TS 模板](https://github.com/dcloudio/uni-preset-vue/tree/vite-ts)，起点 commit `f747e3b11c51b3bff6c05e2b54f9a3173a590044`。按[官方 CLI 指南](https://uniapp.dcloud.net.cn/quickstart-cli)取模板，仅保留 Web 编译目标。版本以 `package-lock.json` 为准，不搬用管理端 Vite 版本。
-
-uview-plus 按[官方 npm 配置](https://uview-plus.jiangruyi.com/components/npmSetting.html)设置 SCSS 和 easycom。按钮、输入、开关、弹层直接复用；本机文件及 PDF 预览使用 Web 适配，原因是浏览器 File / Blob / iframe 并非通用跨端能力。具体兼容实测和未覆盖范围见 `docs/initialization.md`。
-
-独立仓库：<https://github.com/RuntimeAll/knowledge-library-web>。项目业务 PRD 和验收正本继续留在现有工作空间；本仓库只维护本应用源码、运行说明和测试。
+源码托管在[RuntimeAll/knowledge-library-web](https://github.com/RuntimeAll/knowledge-library-web)。PRD及用户验收正本留在现有知识库工作空间；本次没有部署GitHub Pages或公网服务。

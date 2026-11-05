@@ -1,46 +1,184 @@
 <script setup lang="ts">
-import PreviewConfiguration from '../../components/business/PreviewConfiguration.vue';
-import LocalFilePreview from '../../adapters/web/LocalFilePreview.vue';
-import { apiBase, navigation } from '../../adapters/web/runtime';
+import KbPage from "../../components/ui/KbPage.vue";
+import KbSection from "../../components/ui/KbSection.vue";
+import KbButton from "../../components/ui/KbButton.vue";
+import ModeSelector from "../../components/business/ModeSelector.vue";
+import AttachmentPicker from "../../components/business/AttachmentPicker.vue";
+import TaskCard from "../../components/business/TaskCard.vue";
+import { useDraftStore } from "../../stores/draft";
+import { sampleTasks } from "../../fixtures/skeleton";
+import { go } from "../../adapters/platform/navigation";
+const draft = useDraftStore();
 </script>
 <template>
-  <view class="shell">
-    <view class="topbar"><view class="brand"><text class="mark">知</text><text>知识库</text></view><text class="edition">WEB · 基础预览</text></view>
-    <view class="hero">
-      <view class="eyebrow"><text class="dot" /> 独立用户端 · 初始化</view>
-      <text class="headline">教学资料，从这里开始。</text>
-      <text class="intro">先试试配置、文件与预览。你的输入会在返回时保留。</text>
-      <view class="status"><text class="pill">基础组件已接入</text><text class="connection">{{ apiBase ? 'API 地址已配置 · 尚未联调' : '本机预览 · 尚未连接业务服务' }}</text></view>
-    </view>
-    <view class="grid">
-      <view class="card"><view class="card-heading"><text class="number">01</text><view><text class="card-title">配置预览</text><text class="card-caption">输入、开关与弹层</text></view></view><PreviewConfiguration /></view>
-      <view class="card"><view class="card-heading"><text class="number">02</text><view><text class="card-title">文件与 PDF</text><text class="card-caption">本机选择，即时查看</text></view></view><LocalFilePreview /></view>
-    </view>
-    <view class="footer"><text>PRD-100-01-01 · 初始化预览</text><button class="about-link" @click="navigation.about">预览说明与返回验证 →</button></view>
-  </view>
+  <KbPage title="工作台" eyebrow="我的教学资料空间"
+    ><template #action
+      ><button class="avatar" @click="go('/pages/mine/index')">
+        我
+      </button></template
+    >
+    <view class="greeting"
+      ><text class="hero-title"
+        >今天，想做一份<text class="accent">什么资料？</text></text
+      ><text class="hero-caption">让好题有迹可循，让每次备课更轻松。</text
+      ><view class="hero-decor"><view /><view /><view /></view
+    ></view>
+    <view class="composer kb-card"
+      ><ModeSelector v-model="draft.spec.mode" /><view class="goal-field">
+        <textarea
+          v-model="draft.spec.goal"
+          class="goal-input"
+          maxlength="300"
+          placeholder="例如：做一份有理数基础练习，题目由易到难…"
+          placeholder-style="color:#b3b4c6"
+        /></view
+      ><AttachmentPicker /><view class="start-action"
+        ><KbButton
+          label="开始配置"
+          @click="go('/pages/configure/index')" /></view
+      ><text class="composer-footnote">先配好要求，再开始制作</text></view
+    >
+    <view class="library-entry" @click="go('/pages/library/index')"
+      ><view class="library-symbol"
+        ><up-icon name="grid" size="23" color="#8e85c9" /></view
+      ><view
+        ><text class="library-entry-title">从已有题目开始</text
+        ><text class="library-entry-caption"
+          >找一找，或许好题已经在这里</text
+        ></view
+      ><up-icon name="arrow-right" color="#aaa5c2" size="13"
+    /></view>
+    <KbSection
+      title="最近制作"
+      action="全部记录"
+      hint="示例记录 · 看看制作后的样子"
+      @action="go('/pages/records/index')"
+      ><TaskCard
+        v-for="task in sampleTasks.slice(0, 2)"
+        :key="task.id"
+        :task="task"
+        @open="go(`/pages/record-detail/index?id=${$event}`)"
+    /></KbSection>
+  </KbPage>
 </template>
 <style scoped>
-.shell { max-width: 1120px; padding: 0 40px 36px; margin: auto; }
-.topbar { height: 88px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--kb-line); }
-.brand { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 700; }
-.mark { display: grid; place-items: center; width: 36px; height: 36px; color: white; background: var(--kb-brand); border-radius: 11px; font-size: 19px; }
-.edition { color: var(--kb-muted); letter-spacing: 2px; font-size: 10px; }
-.hero { padding: 52px 0 34px; }
-.eyebrow { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--kb-brand); }
-.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--kb-brand); }
-.headline { display: block; margin: 16px 0; font-size: 36px; font-weight: 700; letter-spacing: -1px; line-height: 1.4; }
-.intro { color: var(--kb-muted); font-size: 14px; line-height: 1.8; }
-.status { display: flex; align-items: center; gap: 16px; margin-top: 24px; flex-wrap: wrap; }
-.pill { padding: 6px 10px; border: 1px solid #cce4dc; color: #287657; background: #edf7f1; border-radius: 6px; font-size: 11px; }
-.connection { color: var(--kb-muted); font-size: 11px; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
-.card { background: white; border: 1px solid var(--kb-line); border-radius: var(--kb-radius); padding: 28px; min-width: 0; }
-.card-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
-.number { font-size: 13px; color: var(--kb-brand); background: #edf4f3; padding: 10px; border-radius: 10px; }
-.card-title { display: block; font-weight: 650; font-size: 18px; }
-.card-caption { display: block; margin-top: 6px; color: var(--kb-muted); font-size: 12px; }
-.footer { margin-top: 30px; display: flex; align-items: center; justify-content: space-between; gap: 16px; color: #7a8990; font-size: 11px; }
-.about-link { background: none; padding: 0; border: 0; margin: 0; color: var(--kb-brand); font-size: 12px; line-height: 2; }
-.about-link::after { border: 0; }
-@media (max-width: 700px) { .shell { padding: 0 20px 28px; } .topbar { height: 72px; } .hero { padding: 34px 0 28px; } .headline { font-size: 28px; } .grid { grid-template-columns: 1fr; gap: 18px; } .card { padding: 24px; } .footer { align-items: flex-start; flex-direction: column; gap: 8px; } .edition { letter-spacing: 1px; } }
+.avatar {
+  width: 42px;
+  height: 42px;
+  line-height: 42px;
+  padding: 0;
+  border-radius: 50%;
+  background: #eeeaff;
+  color: #8b7cd6;
+  font-size: 14px;
+  margin: 0;
+  border: 3px solid white;
+}
+.avatar::after {
+  border: 0;
+}
+.greeting {
+  position: relative;
+  margin: 6px 4px 24px;
+  overflow: hidden;
+}
+.hero-title {
+  display: block;
+  font-size: 27px;
+  line-height: 1.55;
+  font-weight: 700;
+  letter-spacing: -0.6px;
+  color: #34364f;
+}
+.accent {
+  display: block;
+  color: #7764d6;
+}
+.hero-caption {
+  display: block;
+  margin-top: 12px;
+  font-size: 12px;
+  color: #a2a3b7;
+  line-height: 1.8;
+}
+.hero-decor {
+  position: absolute;
+  right: 12px;
+  top: 6px;
+  transform: rotate(13deg);
+  width: 70px;
+  height: 78px;
+  opacity: 0.45;
+}
+.hero-decor view {
+  position: absolute;
+  width: 46px;
+  height: 62px;
+  background: #eee8ff;
+  border: 2px solid white;
+  border-radius: 10px;
+  right: 0;
+  top: 0;
+}
+.hero-decor view:nth-child(2) {
+  right: 14px;
+  top: 8px;
+  background: #e6e0fa;
+  transform: rotate(-13deg);
+}
+.hero-decor view:nth-child(3) {
+  right: 27px;
+  top: 16px;
+  background: #f0ecff;
+  transform: rotate(-25deg);
+}
+.composer {
+  padding: 20px 18px;
+}
+.goal-field {
+  margin: 17px 0 12px;
+}
+.goal-input {
+  width: 100%;
+  height: 70px;
+  font-size: 14px;
+  line-height: 1.9;
+  color: #5b5c76;
+}
+.start-action {
+  margin-top: 18px;
+}
+.composer-footnote {
+  display: block;
+  text-align: center;
+  font-size: 10px;
+  color: #b5b3c6;
+  margin-top: 11px;
+}
+.library-entry {
+  display: flex;
+  align-items: center;
+  background: #f0edf9;
+  border-radius: 16px;
+  padding: 16px;
+  margin-top: 16px;
+}
+.library-symbol {
+  margin-right: 12px;
+}
+.library-entry-title {
+  display: block;
+  font-size: 13px;
+  color: #77708f;
+  font-weight: 600;
+}
+.library-entry-caption {
+  display: block;
+  font-size: 10px;
+  color: #aaa2bd;
+  margin-top: 6px;
+}
+.library-entry > view:nth-child(2) {
+  flex: 1;
+}
 </style>

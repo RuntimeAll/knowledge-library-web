@@ -1,0 +1,10 @@
+{
+  "name": "知识库用户端",
+  "appid": "",
+  "description": "PRD-100 Web 用户端基础预览",
+  "versionName": "0.1.0",
+  "versionCode": "1",
+  "vueVersion": "3",
+  "uniStatistics": { "enable": false },
+  "h5": { "title": "知识库 · 基础预览", "router": { "mode": "hash" } }
+}

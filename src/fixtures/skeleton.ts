@@ -96,6 +96,16 @@ export const sampleResources: ResourceSummary[] = [
     usable: true,
   },
   {
+    id: "preview-question-3",
+    category: "questions",
+    subject: "数学",
+    title: "有理数的运算顺序",
+    meta: "七年级 · 计算题 · 布局示例",
+    description:
+      "第二道母题位置示例，用于核对多母题选择顺序与变式数量。没有正式题面。",
+    usable: true,
+  },
+  {
     id: "preview-product-1",
     category: "products",
     subject: "数学",

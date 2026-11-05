@@ -4,132 +4,187 @@ import { onLoad } from "@dcloudio/uni-app";
 import KbPage from "../../components/ui/KbPage.vue";
 import KbSection from "../../components/ui/KbSection.vue";
 import KbButton from "../../components/ui/KbButton.vue";
+import KbChips from "../../components/ui/KbChips.vue";
 import KbState from "../../components/ui/KbState.vue";
-import TaskCard from "../../components/business/TaskCard.vue";
-import { sampleTasks } from "../../fixtures/skeleton";
-import { go, notify } from "../../adapters/platform/navigation";
+import SubmissionSummary from "../../components/business/SubmissionSummary.vue";
+import WorkflowControls from "../../components/business/WorkflowControls.vue";
+import { useWorkflowStore } from "../../stores/workflow";
 import { useDraftStore } from "../../stores/draft";
+import {
+  workflowStatusLabel,
+  workflowTime,
+  workflowError,
+} from "../../components/business/workflow-display";
+import type { WorkflowAction } from "../../core/workflow";
+import { go } from "../../adapters/platform/navigation";
+const workflow = useWorkflowStore();
+const draft = useDraftStore();
 const id = ref("");
+const selected = ref("");
+const error = ref("");
 onLoad((q) => {
   id.value = q?.id || "";
+  selected.value = q?.submission || "";
 });
-const task = computed(() => sampleTasks.find((x) => x.id === id.value));
-const draft = useDraftStore();
-function reuse() {
-  if (task.value) {
-    draft.spec.title = task.value.title;
-    draft.spec.mode = task.value.mode;
-    go("/pages/configure/index");
+const order = computed(() => workflow.getOrder(id.value));
+const submission = computed(() =>
+  workflow.getSubmission(id.value, selected.value || undefined),
+);
+const versions = computed(
+  () =>
+    order.value?.submissions.map((sub) => ({
+      label: `第 ${sub.revision} 版${sub.revision === order.value?.currentRevision ? " · 当前" : ""}`,
+      value: sub.id,
+    })) || [],
+);
+function advance(action: WorkflowAction) {
+  if (!submission.value) return;
+  try {
+    workflow.advance(id.value, submission.value.id, action);
+    error.value = "";
+  } catch (e) {
+    error.value = workflowError(e);
   }
+}
+function edit() {
+  if (
+    !submission.value ||
+    !order.value ||
+    submission.value.revision !== order.value.currentRevision
+  )
+    return;
+  draft.beginEdit(
+    submission.value.snapshot,
+    id.value,
+    order.value.currentRevision,
+  );
+  go("/pages/configure/index");
 }
 </script>
 <template>
-  <KbPage title="记录详情" backable
-    ><template v-if="task"
-      ><TaskCard :task="task" /><text class="kb-preview-note"
-        >此记录仅用于预览页面与状态</text
-      ><KbSection title="制作进度"
-        ><view class="kb-card"
-          ><view
-            v-for="(step, i) in [
-              '资料与要求已准备',
-              '等待处理',
-              '整理与制作',
-              '结果待查看',
-            ]"
-            :key="step"
-            class="timeline-row"
-            ><view
-              class="timeline-dot"
-              :class="{ done: task.status === 'completed' || i === 0 }"
-            /><view
-              ><text>{{ step }}</text
-              ><text class="timeline-caption">{{
-                task.status === "completed"
-                  ? "完成状态示例"
-                  : i === 0
-                    ? "输入已保留"
-                    : "流程状态展示"
-              }}</text></view
-            ></view
-          ></view
-        ></KbSection
-      ><KbSection title="制作要求"
-        ><view class="kb-card"
-          ><view class="summary-row"
-            ><text>资料名称</text><text>{{ task.title }}</text></view
-          ><view class="summary-row"
-            ><text>答案</text><text>独立答案 · 红色</text></view
-          ><view class="summary-row"
-            ><text>排版经验</text><text>清爽练习</text></view
-          ></view
-        ></KbSection
-      ><view class="detail-actions"
+  <KbPage title="记录详情" backable>
+    <template v-if="order && submission">
+      <view class="record-heading kb-card"
+        ><view class="heading-row"
+          ><text class="record-version"
+            >第 {{ submission.revision }} 版{{
+              submission.revision === order.currentRevision
+                ? " · 当前版本"
+                : " · 历史版本"
+            }}</text
+          ><text class="record-status" :class="submission.status">{{
+            workflowStatusLabel(submission.status)
+          }}</text></view
+        ><text class="record-title">{{ submission.snapshot.title }}</text
+        ><text class="record-note">{{ submission.statusNote }}</text
+        ><text class="record-time"
+          >更新于 {{ workflowTime(submission.updatedAt) }}</text
+        ></view
+      >
+      <text class="kb-preview-note"
+        >本条为模拟任务，状态由下方演示控制推进。</text
+      >
+      <KbSection v-if="versions.length > 1" title="版本记录"
+        ><KbChips
+          :model-value="submission.id"
+          :options="versions"
+          small
+          @update:model-value="
+            selected = $event;
+            error = '';
+          "
+      /></KbSection>
+      <KbSection title="本次提交的要求"
+        ><SubmissionSummary :spec="submission.snapshot"
+      /></KbSection>
+      <WorkflowControls :status="submission.status" @action="advance" />
+      <text v-if="error" class="flow-error">{{ error }}</text>
+      <view class="record-actions"
         ><KbButton
-          v-if="task.status === 'completed'"
-          label="查看结果"
-          @click="go(`/pages/result/index?id=${task.id}`)" /><KbButton
-          v-else
-          :label="task.status === 'failed' ? '查看待处理原因' : '当前状态说明'"
-          secondary
-          @click="notify(task.detail)" /><view class="secondary-action"
+          v-if="submission.result"
+          :label="
+            submission.snapshot.mode === 'intake' ? '查看录题回执' : '查看结果'
+          "
+          @click="
+            go(`/pages/result/index?id=${id}&submission=${submission.id}`)
+          " /><view class="secondary-action"
           ><KbButton
-            label="复用配置"
+            label="修改配置再提交"
             secondary
-            @click="reuse" /></view></view></template
-    ><KbState
+            :disabled="submission.revision !== order.currentRevision"
+            @click="edit" /></view
+        ><view class="secondary-action"
+          ><KbButton
+            label="返回全部记录"
+            secondary
+            @click="go('/pages/records/index')" /></view
+      ></view>
+    </template>
+    <KbState
       v-else
       state="empty"
       title="没有找到这条记录"
-      description="请返回记录列表重新选择"
-  /></KbPage>
+      description="请从模拟记录列表重新进入"
+      action="查看全部记录"
+      @retry="go('/pages/records/index')"
+    />
+  </KbPage>
 </template>
 <style scoped>
-.timeline-row {
+.heading-row {
   display: flex;
-  padding: 12px 0;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
 }
-.timeline-dot {
-  width: 10px;
-  height: 10px;
-  border: 2px solid #e5e3f0;
-  border-radius: 50%;
-  margin: 4px 16px 0 2px;
+.record-version {
+  font-size: 11px;
+  color: #9c93ad;
 }
-.timeline-dot.done {
-  border-color: #b2a3e6;
-  background: #b2a3e6;
-}
-.timeline-row > view:last-child {
-  font-size: 13px;
-  color: #7e8298;
-}
-.timeline-caption {
-  display: block;
-  color: #b2b5c3;
-  font-size: 10px;
-  margin-top: 6px;
-}
-.summary-row {
-  display: flex;
-  font-size: 12px;
-  padding: 10px 0;
-  line-height: 1.8;
-}
-.summary-row > text:first-child {
-  width: 80px;
+.record-status {
+  font-size: 11px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: #edeaf8;
+  color: #8876b8;
   flex-shrink: 0;
-  color: #a2a7b6;
 }
-.summary-row > text:last-child {
-  color: #747a91;
-  flex: 1;
+.record-status.completed {
+  background: #e7f5ee;
+  color: #61a38e;
+}
+.record-title {
+  display: block;
+  font-size: 19px;
+  line-height: 1.7;
+  font-weight: 600;
+  color: #52556f;
+  margin: 18px 0 10px;
   overflow-wrap: anywhere;
 }
-.detail-actions {
-  margin-top: 28px;
+.record-note {
+  display: block;
+  font-size: 12px;
+  color: #9295a9;
+  line-height: 1.9;
+}
+.record-time {
+  display: block;
+  font-size: 10px;
+  color: #acafbf;
+  margin-top: 16px;
+}
+.record-actions {
+  margin-top: 24px;
 }
 .secondary-action {
   margin-top: 12px;
+}
+.flow-error {
+  display: block;
+  font-size: 12px;
+  color: #bc7777;
+  line-height: 1.8;
+  margin: 14px 4px;
 }
 </style>

@@ -23,7 +23,12 @@ export interface DraftSpec {
   extensionCount: number;
   subject: string;
   textbook: string;
-  point: string;
+  point: string; // compatibility label; selected points are owned by points
+  chapter: string;
+  points: string[];
+  templateVersion: string;
+  sourceQuestionCount: number | null;
+  countScope: "PER_SOURCE";
   difficulty: string;
   template: string;
   includeAnswers: boolean;
@@ -74,7 +79,12 @@ export function freshDraft(): DraftSpec {
     subject: "数学",
     textbook: "",
     point: "",
-    difficulty: "基础巩固",
+    chapter: "",
+    points: [],
+    templateVersion: "示例 v1",
+    sourceQuestionCount: null,
+    countScope: "PER_SOURCE",
+    difficulty: "保持难度",
     template: "清爽练习",
     includeAnswers: true,
     note: "",
@@ -94,15 +104,52 @@ export function draftError(draft: DraftSpec): string {
   if (
     draft.mode === "variant" &&
     [draft.originalCount, draft.variantCount, draft.extensionCount].some(
-      (n) => !Number.isInteger(n) || n < 0 || n > 10,
+      (n) => !Number.isInteger(n) || n < 0 || n > 20,
     )
   )
-    return "每项题量需为 0～10 的整数";
+    return "每项题量需为 0～20 的整数";
   if (
     draft.mode === "variant" &&
     draft.originalCount + draft.variantCount + draft.extensionCount < 1
   )
     return "请至少选择一项题目组合";
+  if (draft.mode === "variant" && recipeSize(draft) > 50)
+    return "每道母题组合不能超过 50 题";
+  return "";
+}
+export function recipeSize(draft: DraftSpec): number {
+  return draft.originalCount + draft.variantCount + draft.extensionCount;
+}
+export function sourceCount(draft: DraftSpec): number | null {
+  if (draft.attachments.length) return draft.sourceQuestionCount;
+  return draft.referenceIds.length || null;
+}
+export function totalQuestions(draft: DraftSpec): number | null {
+  if (draft.mode === "intake") return sourceCount(draft);
+  if (draft.mode === "practice") return draft.count;
+  const count = sourceCount(draft);
+  return count === null ? null : count * recipeSize(draft);
+}
+export function submissionError(draft: DraftSpec): string {
+  const error = draftError(draft);
+  if (error) return error;
+  if (!["数学", "科学"].includes(draft.subject)) return "请选择学科";
+  const hasSource = !!(draft.attachments.length || draft.referenceIds.length);
+  if (draft.mode !== "practice" && !hasSource) return "请先添加资料或选择母题";
+  if (
+    draft.mode === "practice" &&
+    !hasSource &&
+    !draft.goal.trim() &&
+    !draft.points.length &&
+    !draft.point
+  )
+    return "请填写制作要求或选择考点";
+  if (draft.mode === "variant") {
+    if (draft.countScope !== "PER_SOURCE") return "当前变式数量按每道母题计算";
+    const count = sourceCount(draft);
+    if (count === null || !Number.isInteger(count) || count < 1 || count > 100)
+      return "请核对母题数量（1～100道），不能用文件数量代替";
+  }
   return "";
 }
 export function matchResource(

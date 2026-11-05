@@ -7,6 +7,10 @@ function changeSubject(value: string) {
   draft.spec.subject = value;
   draft.spec.textbook = "";
   draft.spec.point = "";
+  draft.spec.chapter = "";
+  draft.spec.points = [];
+  draft.spec.referenceIds = [];
+  draft.spec.sourceQuestionCount = null;
 }
 </script>
 <template>

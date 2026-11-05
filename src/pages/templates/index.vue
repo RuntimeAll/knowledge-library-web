@@ -12,7 +12,8 @@ onLoad((q) => {
 </script>
 <template>
   <KbPage title="排版经验" subtitle="让内容有呼吸，让书写有空间" backable
-    ><text class="kb-preview-note">版式示意 · 正式经验模板将在接入后读取</text
+    ><text class="kb-preview-note"
+      >示例 v1 · 正式经验模板及已发布版本将在接入后读取</text
     ><view
       v-for="item in experiences"
       :key="item.name"
@@ -26,7 +27,8 @@ onLoad((q) => {
         ><PaperPreview :name="item.name" compact /></view
       ><view class="template-info"
         ><view
-          ><text class="template-name">{{ item.name }}</text
+          ><text class="template-name"
+            >{{ item.name }} <text class="template-version">示例 v1</text></text
           ><text class="template-desc">{{ item.description }}</text></view
         ><text class="template-tag">{{ item.tag }}</text></view
       ><view class="template-view"
@@ -88,5 +90,11 @@ onLoad((q) => {
   font-size: 11px;
   color: #a296c8;
   padding: 0 20px 18px;
+}
+.template-version {
+  font-size: 10px;
+  font-weight: 400;
+  color: #ac9dbb;
+  margin-left: 4px;
 }
 </style>

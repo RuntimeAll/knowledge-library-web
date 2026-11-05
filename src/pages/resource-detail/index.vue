@@ -9,7 +9,7 @@ import KbBottomAction from "../../components/ui/KbBottomAction.vue";
 import ResultFiles from "../../components/business/ResultFiles.vue";
 import { sampleResources } from "../../fixtures/skeleton";
 import { useDraftStore } from "../../stores/draft";
-import { go } from "../../adapters/platform/navigation";
+import { go, notify } from "../../adapters/platform/navigation";
 const id = ref("");
 onLoad((q) => {
   id.value = q?.id || "";
@@ -18,7 +18,10 @@ const item = computed(() => sampleResources.find((x) => x.id === id.value));
 const draft = useDraftStore();
 function useReference() {
   if (item.value && !draft.spec.referenceIds.includes(item.value.id))
-    draft.toggleReference(item.value.id);
+    if (!draft.toggleReference(item.value.id, item.value.subject)) {
+      notify("同一份资料请选择同学科母题");
+      return;
+    }
   go("/pages/configure/index");
 }
 </script>

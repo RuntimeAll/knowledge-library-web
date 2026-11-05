@@ -1,7 +1,36 @@
 <script setup lang="ts">
+import { computed } from "vue";
+import KbButton from "../../components/ui/KbButton.vue";
+import { useWorkflowStore } from "../../stores/workflow";
+import { useDraftStore } from "../../stores/draft";
+import { currentSubmission } from "../../core/workflow";
 import KbPage from "../../components/ui/KbPage.vue";
 import KbSection from "../../components/ui/KbSection.vue";
 import { go } from "../../adapters/platform/navigation";
+const workflow = useWorkflowStore();
+const draft = useDraftStore();
+const completed = computed(
+  () =>
+    workflow.orders.filter((o) => currentSubmission(o).status === "completed")
+      .length,
+);
+function logout() {
+  workflow.logout();
+  draft.clear();
+  uni.reLaunch({ url: "/pages/login/index" });
+}
+function reset() {
+  uni.showModal({
+    title: "重置演示记录",
+    content: "仅清空这个设备上的模拟任务和发布草稿，正式资料不受影响。",
+    success: (r) => {
+      if (r.confirm) {
+        workflow.resetDemo();
+        draft.clear();
+      }
+    },
+  });
+}
 const entries = [
   {
     icon: "file-text",
@@ -35,13 +64,24 @@ const entries = [
       ><view class="avatar"
         ><up-icon name="account" size="32" color="#8e82d0" /></view
       ><view
-        ><text class="profile-title">老师，欢迎回来</text
-        ><text class="profile-caption">个人空间 · 页面预览</text></view
+        ><text class="profile-title">{{
+          workflow.session?.username || "未登录"
+        }}</text
+        ><text class="profile-caption">管理员 · 模拟空间</text></view
       ><view class="profile-flower">✦</view></view
     ><view class="stats" @click="go('/pages/records/index')"
-      ><view><text class="stat-number">—</text><text>我的资料</text></view
-      ><view><text class="stat-number">—</text><text>制作记录</text></view
-      ><view><text class="stat-number">—</text><text>待处理</text></view></view
+      ><view
+        ><text class="stat-number">{{ completed }}</text
+        ><text>模拟结果</text></view
+      ><view
+        ><text class="stat-number">{{ workflow.orders.length }}</text
+        ><text>制作记录</text></view
+      ><view
+        ><text class="stat-number">{{
+          workflow.orders.length - completed
+        }}</text
+        ><text>待处理</text></view
+      ></view
     ><KbSection title="备课小助手"
       ><view class="kb-card menu"
         ><view
@@ -58,9 +98,16 @@ const entries = [
             name="arrow-right"
             color="#c5c4d5"
             size="12" /></view></view></KbSection
+    ><view class="account-actions"
+      ><KbButton label="退出演示" secondary @click="logout" /><button
+        class="reset-demo"
+        @click="reset"
+      >
+        重置本机模拟记录
+      </button></view
     ><text class="footnote"
       >把时间留给教学，把资料慢慢积累。<text
-        >账号与正式数据将在接入后显示</text
+        >当前只有 admin 演示账号，真实账号尚未联调</text
       ></text
     ></KbPage
   >
@@ -155,5 +202,18 @@ const entries = [
   display: block;
   font-size: 10px;
   color: #bfc1cd;
+}
+.account-actions {
+  margin-top: 28px;
+}
+.reset-demo {
+  font-size: 11px;
+  color: #9d90b7;
+  background: none;
+  line-height: 42px;
+  margin: 10px auto 0;
+}
+.reset-demo::after {
+  border: 0;
 }
 </style>

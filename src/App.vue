@@ -1,5 +1,7 @@
 <script setup lang="ts">
-// Application styles and initialization only; page behavior belongs to pages.
+import { onShow } from "@dcloudio/uni-app";
+import { ensureSession } from "./adapters/platform/auth";
+onShow(ensureSession);
 </script>
 <style lang="scss">
 @import "uview-plus/index.scss";

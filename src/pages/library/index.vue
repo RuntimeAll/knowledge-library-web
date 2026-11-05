@@ -7,7 +7,7 @@ import KbState from "../../components/ui/KbState.vue";
 import { sampleResources } from "../../fixtures/skeleton";
 import { matchResource, type ResourceSummary } from "../../core/skeleton";
 import { useDraftStore } from "../../stores/draft";
-import { go } from "../../adapters/platform/navigation";
+import { go, notify } from "../../adapters/platform/navigation";
 const category = ref("questions");
 const subject = ref("全部");
 const query = ref("");
@@ -28,6 +28,10 @@ const items = computed(() =>
     ),
   ),
 );
+function select(item: ResourceSummary) {
+  if (!draft.toggleReference(item.id, item.subject))
+    notify("同一份资料请选择同学科母题");
+}
 </script>
 <template>
   <KbPage title="题库" eyebrow="好题积累，随时取用"
@@ -68,7 +72,7 @@ const items = computed(() =>
         ><button
           v-if="item.usable"
           :class="{ picked: draft.spec.referenceIds.includes(item.id) }"
-          @click="draft.toggleReference(item.id)"
+          @click="select(item)"
         >
           {{
             draft.spec.referenceIds.includes(item.id) ? "已选 ✓" : "选作参考"

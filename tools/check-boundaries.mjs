@@ -38,7 +38,7 @@ for (const target of [
 ])
   assert.equal(pkg.dependencies[target], pkg.dependencies["@dcloudio/uni-app"]);
 const mp = JSON.parse(await readFile("dist/build/mp-weixin/app.json", "utf8"));
-assert.equal(mp.pages.length, 14);
+assert.equal(mp.pages.length, 15);
 assert.equal(mp.tabBar.list.length, 4);
 assert.ok(
   mp.pages.every((p) => !p.includes("foundation") && !p.includes("about")),
@@ -49,5 +49,5 @@ for (const file of ["dist/build/mp-weixin/app.wxss", "dist/build/app/app.css"])
     `${file}: packaged icon font`,
   );
 console.log(
-  "Shared core/UI boundaries, aligned compiler versions, 14 mini-program routes, 4 tabs, and packaged fonts: passed.",
+  "Shared core/UI boundaries, aligned compiler versions, 15 mini-program routes, 4 tabs, and packaged fonts: passed.",
 );

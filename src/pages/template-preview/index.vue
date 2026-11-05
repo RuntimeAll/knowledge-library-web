@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import KbPage from "../../components/ui/KbPage.vue";
+import KbChips from "../../components/ui/KbChips.vue";
 import KbButton from "../../components/ui/KbButton.vue";
 import KbBottomAction from "../../components/ui/KbBottomAction.vue";
 import PaperPreview from "../../components/business/PaperPreview.vue";
@@ -10,6 +11,7 @@ import { useDraftStore } from "../../stores/draft";
 import { notify } from "../../adapters/platform/navigation";
 const name = ref(experiences[0].name);
 const selecting = ref(false);
+const edition = ref("student");
 const draft = useDraftStore();
 onLoad((q) => {
   name.value =
@@ -18,6 +20,7 @@ onLoad((q) => {
 });
 function select() {
   draft.spec.template = name.value;
+  draft.spec.templateVersion = "示例 v1";
   notify("已选用此版式");
   const pages = getCurrentPages();
   if (
@@ -29,12 +32,20 @@ function select() {
 }
 </script>
 <template>
-  <KbPage :title="name" subtitle="版式结构预览" backable
-    ><PaperPreview :name="name" /><view class="preview-description"
+  <KbPage :title="name" subtitle="示例 v1 · 版式结构预览" backable
+    ><view class="edition-options"
+      ><KbChips
+        v-model="edition"
+        :options="[
+          { label: '学生版', value: 'student' },
+          { label: '答案版', value: 'answer' },
+        ]" /></view
+    ><PaperPreview :name="name" :show-answers="edition === 'answer'" /><view
+      class="preview-description"
       ><text>标题、题号与作答留白</text
       ><text>学生版与答案版分别呈现，答案默认使用红色。</text
       ><text
-        >当前展示统一骨架，正式模板的样式和可用版本将在接入后读取。</text
+        >当前仅展示版式与答案颜色。所选示例版本随配置保存，正式模板版本将在接入后读取。</text
       ></view
     ><KbBottomAction v-if="selecting"
       ><KbButton label="使用这个版式" @click="select" /></KbBottomAction
@@ -55,5 +66,8 @@ function select() {
   color: #7a7e97;
   font-size: 14px;
   font-weight: 500;
+}
+.edition-options {
+  margin-bottom: 20px;
 }
 </style>

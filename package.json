@@ -6,7 +6,7 @@
     "build": "uni build",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint src tests tools vite.config.ts",
-    "test": "node --import tsx --test tests/core.test.ts",
+    "test": "node --import tsx --test tests/*.test.ts",
     "test:ui": "node tests/smoke.mjs",
     "dev:h5": "uni --host 127.0.0.1 --port 5193",
     "build:h5": "uni build -p h5",
@@ -27,7 +27,8 @@
     "prebuild:app": "npm run prepare:assets",
     "pretype-check": "npm run prepare:assets",
     "format": "prettier --write src tests tools vite.config.ts",
-    "test:architecture": "node tools/check-boundaries.mjs"
+    "test:architecture": "node tools/check-boundaries.mjs",
+    "test:admin": "node tests/admin-flow.mjs"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-5030420261029002",

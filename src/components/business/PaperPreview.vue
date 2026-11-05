@@ -1,8 +1,12 @@
 <script setup lang="ts">
-withDefaults(defineProps<{ name?: string; compact?: boolean }>(), {
-  name: "清爽练习",
-  compact: false,
-});
+withDefaults(
+  defineProps<{ name?: string; compact?: boolean; showAnswers?: boolean }>(),
+  {
+    name: "清爽练习",
+    compact: false,
+    showAnswers: false,
+  },
+);
 </script>
 <template>
   <view class="paper" :class="{ compact }"
@@ -11,9 +15,14 @@ withDefaults(defineProps<{ name?: string; compact?: boolean }>(), {
     ><view v-for="n in compact ? 3 : 5" :key="n" class="paper-question"
       ><view class="paper-line"
         ><text>{{ n }}.</text><view /></view
-      ><view class="writing-space" /></view
+      ><view class="writing-space" /><text
+        v-if="showAnswers && !compact"
+        class="answer-placeholder"
+        data-testid="paper-answer"
+        >答案与解析区域示意</text
+      ></view
     ><text v-if="!compact" class="paper-footer"
-      >版式示意 · 实际题目将按内容排版</text
+      >版式示意 · 无真实题目与答案</text
     ></view
   >
 </template>
@@ -92,5 +101,12 @@ withDefaults(defineProps<{ name?: string; compact?: boolean }>(), {
 }
 .compact .paper-line view {
   height: 3px;
+}
+.answer-placeholder {
+  display: block;
+  color: #d32f2f;
+  font-size: 12px;
+  line-height: 1.8;
+  padding: 10px 0 0 18px;
 }
 </style>

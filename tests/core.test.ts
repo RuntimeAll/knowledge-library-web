@@ -132,8 +132,8 @@ test("library combines category, subject and trimmed search, without mixing reso
     query: string,
   ) =>
     sampleResources.filter((x) => matchResource(x, category, subject, query));
-  assert.equal(filter("questions", "全部", "").length, 2);
-  assert.equal(filter("questions", "数学", " 有理数 ").length, 1);
+  assert.equal(filter("questions", "全部", "").length, 3);
+  assert.equal(filter("questions", "数学", " 有理数 ").length, 2);
   assert.equal(filter("questions", "科学", "有理数").length, 0);
   assert.equal(
     filter("products", "全部", "").every((x) => !x.usable),

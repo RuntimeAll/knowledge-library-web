@@ -1,11 +1,11 @@
-import { freshDraft, type DraftSpec } from "../../core/skeleton";
+import { withDraftDefaults, type DraftSpec } from "../../core/skeleton";
 const key = "knowledge-library-demo-draft-v1";
 export function readDraft(): DraftSpec | null {
   try {
     const value = uni.getStorageSync(key);
     if (!value || value.version !== 1 || typeof value.spec?.title !== "string")
       return null;
-    const spec = { ...freshDraft(), ...value.spec } as DraftSpec;
+    const spec = withDraftDefaults(value.spec as DraftSpec);
     // Temporary paths must be selected again after reload; names and order stay visible.
     spec.attachments = (spec.attachments || []).map((file) => ({
       ...file,

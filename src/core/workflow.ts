@@ -1,6 +1,7 @@
 import {
   submissionError,
   sourceCount,
+  practiceCopyCount,
   type DraftSpec,
   type MakeMode,
 } from "./skeleton";
@@ -58,10 +59,12 @@ export interface ResultItem {
   kind: "original" | "variant" | "extension" | "practice";
   /** One-based index within the same kind/source. */
   index: number;
-  /** One-based absolute order in the complete preview output. */
+  /** One-based order within a sheet; variant source groups share the same sequence. */
   ordinal: number;
 }
 export interface ResultGroup {
+  /** Specialized practice sheets have an independent ordinal and shared frozen requirements. */
+  copyIndex?: number;
   sourceId: string;
   sourceIndex: number;
   items: ResultItem[];
@@ -73,6 +76,7 @@ export interface MockResult {
   groups: ResultGroup[];
   artifacts: ResultArtifact[];
   totalCount: number | null;
+  practiceCopies?: number;
   createdAt: number;
   label: "模拟结果，不是正式教学资料";
 }
@@ -202,32 +206,11 @@ export function availableActions(status: WorkflowStatus): WorkflowAction[] {
   }
 }
 
-// These optional fields also allow a previous draft to be shown before migration.
-type ExtendedDraft = DraftSpec & {
-  sourceQuestionCount?: number | null;
-  points?: string[];
-};
+/** Only selected question identities are known; attachments are not parsed by Mock. */
 export function sourceIdsFor(spec: DraftSpec): string[] {
-  const source = spec as ExtendedDraft;
-  const selected = [...source.referenceIds];
+  const selected = [...spec.referenceIds];
   if (new Set(selected).size !== selected.length)
     throw new WorkflowError("INVALID_REFERENCES", "同一道母题不能重复选择");
-  if (source.attachments.length) {
-    const count = source.sourceQuestionCount;
-    if (
-      !Number.isInteger(count) ||
-      !count ||
-      count < Math.max(1, selected.length) ||
-      count > 100
-    ) {
-      throw new WorkflowError(
-        "SOURCE_COUNT_REQUIRED",
-        "请核对母题总数（包含已选参考题），文件数不能当作母题数",
-      );
-    }
-    while (selected.length < count)
-      selected.push(`mock-upload-source-${selected.length + 1}`);
-  }
   return selected;
 }
 export function validateSubmission(spec: DraftSpec): void {
@@ -279,18 +262,21 @@ export function buildResult(
       }
       groups.push({ sourceId, sourceIndex: sourceIndex + 1, items });
     }
-    totalCount = ordinal;
+    totalCount = spec.attachments.length ? null : ordinal;
   } else if (spec.mode === "practice") {
-    groups.push({
-      sourceId: "mock-practice-requirements",
-      sourceIndex: 1,
-      items: Array.from({ length: spec.count }, (_, i) => ({
-        kind: "practice",
-        index: i + 1,
-        ordinal: i + 1,
-      })),
-    });
-    totalCount = spec.count;
+    for (let copyIndex = 1; copyIndex <= practiceCopyCount(spec); copyIndex++) {
+      groups.push({
+        sourceId: `mock-practice-requirements-${copyIndex}`,
+        sourceIndex: 1,
+        copyIndex,
+        items: Array.from({ length: spec.count }, (_, i) => ({
+          kind: "practice",
+          index: i + 1,
+          ordinal: i + 1,
+        })),
+      });
+    }
+    totalCount = spec.count * practiceCopyCount(spec);
   } else {
     const count = sourceCount(spec);
     totalCount =
@@ -307,6 +293,9 @@ export function buildResult(
     mode: spec.mode,
     groups,
     totalCount,
+    ...(spec.mode === "practice"
+      ? { practiceCopies: practiceCopyCount(spec) }
+      : {}),
     artifacts:
       spec.mode === "intake"
         ? ["receipt"]

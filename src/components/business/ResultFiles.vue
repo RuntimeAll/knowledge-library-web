@@ -5,18 +5,21 @@ import type { MockResult, ResultArtifact } from "../../core/workflow";
 import { demoLines } from "../../core/demo-document";
 import { downloadDemoFile } from "../../adapters/platform/demo-files";
 import { notify } from "../../adapters/platform/navigation";
-const props = defineProps<{ result?: MockResult; spec?: DraftSpec }>();
+const props = withDefaults(
+  defineProps<{ result?: MockResult; spec?: DraftSpec; copyIndex?: number }>(),
+  { copyIndex: 1 },
+);
 const labels = { student: "学生版", answer: "答案版", receipt: "录题回执" };
 const preview = ref<ResultArtifact | null>(null);
 const lines = computed(() =>
   props.result && props.spec && preview.value && preview.value !== "receipt"
-    ? demoLines(props.spec, props.result, preview.value)
+    ? demoLines(props.spec, props.result, preview.value, props.copyIndex)
     : [],
 );
 function download(kind: ResultArtifact) {
   if (!props.result || !props.spec) return;
   try {
-    downloadDemoFile(props.spec, props.result, kind);
+    downloadDemoFile(props.spec, props.result, kind, props.copyIndex);
   } catch (e) {
     notify(e instanceof Error ? e.message : "暂时无法取用文件");
   }
@@ -32,7 +35,11 @@ function download(kind: ResultArtifact) {
           }}</text></view
         ><view class="result-name"
           ><text>{{ labels[kind] }}</text
-          ><text class="file-hint">本次配置的模拟文件</text></view
+          ><text class="file-hint">{{
+            result.mode === "practice"
+              ? `第 ${copyIndex} 份 / 共 ${result.practiceCopies ?? 1} 份`
+              : "本次配置的模拟文件"
+          }}</text></view
         ><view class="file-actions"
           ><button
             v-if="kind !== 'receipt'"

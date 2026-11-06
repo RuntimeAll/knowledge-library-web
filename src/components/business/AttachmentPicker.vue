@@ -32,13 +32,11 @@ function preview(file: Attachment) {
 }
 function removeReference(id: string) {
   draft.toggleReference(id);
-  if (draft.spec.attachments.length) draft.spec.sourceQuestionCount = null;
 }
 function removeFile(id: string) {
   draft.spec.attachments = draft.spec.attachments.filter(
     (file) => file.id !== id,
   );
-  draft.spec.sourceQuestionCount = null;
 }
 async function pick(kind: "image" | "pdf") {
   uploadOpen.value = false;
@@ -53,7 +51,6 @@ async function pick(kind: "image" | "pdf") {
       return;
     }
     draft.addFiles(files);
-    draft.spec.sourceQuestionCount = null;
   } catch (error) {
     const message =
       error instanceof Error

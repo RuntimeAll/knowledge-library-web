@@ -1,6 +1,6 @@
 # 页面骨架与持续开发
 
-2026-11-05：初始化与页面骨架按用户授权联动修订，随后按本轮授权补齐原型输入/配置及单 admin 模拟全流程。采用标准 uni-app Vue3。用户验收与各子需求状态以工作空间 PRD 正本为准。
+2026-11-05：初始化与页面骨架按用户授权联动修订，随后按本轮授权补齐原型输入/配置及单 admin 模拟全流程。2026-11-06 的 U16 修订将名称改为选填，专项练习增加独立份数配置，举一反三移除母题总数手填。采用标准 uni-app Vue3。用户验收与各子需求状态以工作空间 PRD 正本为准。
 
 当前可以输入要求、选择本地参考资料或示例母题、保存配置、提交模拟任务、演练状态、查看历史版本和结果、下载模拟文件、确认结果并保存发布草稿。登录是单 admin 模拟会话，题库/教材/模板仍为 `preview-*` 示例；真实鉴权、上传、制作执行、题库写入和对外发布未接入。
 
@@ -13,10 +13,10 @@
 |题库四分类|pages/library/index|KbSearch、KbChips、KbState；资源卡由本页拥有|
 |制作记录|pages/records/index|KbSearch、KbChips、WorkflowRecordCard、KbState|
 |我的|pages/mine/index|KbPage、KbSection；个人信息与菜单由本页拥有|
-|制作配置|pages/configure/index|SpecForm、VariantRecipe、ContextPicker、AttachmentPicker、KbBottomAction|
+|制作配置|pages/configure/index|SpecForm、PracticeQuantity、VariantRecipe、ContextPicker、AttachmentPicker、KbBottomAction|
 |记录详情|pages/record-detail/index|SubmissionSummary、WorkflowControls；版本选择与详情由本页拥有|
 |资料详情|pages/resource-detail/index|ResultFiles、KbState；示例资源与参考题选择|
-|制作结果|pages/result/index|SubmissionSummary、ResultFiles；题组预览、结果确认与模拟文件取用|
+|制作结果|pages/result/index|SubmissionSummary、ResultFiles；题组预览、专项逐份切换、结果确认与模拟文件取用|
 |排版经验、版式预览|pages/templates/index、pages/template-preview/index|PaperPreview、KbBottomAction|
 |发布准备|pages/publication/index|KbState、KbButton；仅保存关联已确认模拟结果的草稿|
 |教学工具、偏好|pages/tools/index、pages/settings/index|KbSection、KbChips、开关|
@@ -27,9 +27,11 @@
 
 ## 配置、版本与持久化
 
-首页输入和配置页的补充要求共用 `DraftSpec.goal`。配置按名称、题量/母题组合、学科→教材→章节→多考点、难度、模板版本、答案、补充要求排列；改变上游清空下游选择。只录题保留名称、教材上下文、要求与适用的处理范围。有附件才显示处理范围。
+首页输入和配置页的补充要求共用 `DraftSpec.goal`。配置按名称、专项题量与份数/母题组合、学科→教材→章节→多考点、难度、模板版本、答案、补充要求排列；改变上游清空下游选择。资料名称为选填，空名称可保存和提交；`displayTitle` 为记录、结果、下载与发布草稿初始展示提供类型及稳定提交编号组成的兜底名称，不回写或修改提交快照的原始 `title`。只录题保留名称、教材上下文、要求与适用的处理范围。有附件才显示处理范围。
 
-举一反三使用每母题组合（PER_SOURCE）：按照母题选择顺序，每组依次放原题、同类变式、提升拓展，再进入下一道母题。默认 `1 + 2 + 1`，两道母题共 8 题；每类允许 0–20，每组总数 1–50。仅从题库选题时按已选参考题计数；有附件时要求核对本次全部母题总数（包含已选参考题），不能把附件数当题数。模拟上传母题只生成顺序占位，不解析附件或声称完成题面识别。
+专项练习由 `PracticeQuantity` 独立维护每份题量 `count` 和制作份数 `practiceCopies`，两者均允许 1–100 的整数，新配置默认每份 10 题、共 20 份。各份使用同一份冻结要求，目标为不同题目的练习，不表示同内容的打印份数。结果保存每份的 `copyIndex`，份内题号独立；界面逐份切换，`ResultFiles` 只预览和下载当前份，文件名与正文带第 N 份标识。Mock 只生成分份结构和题面占位，不能将其描述为已经生成不同真实题目。历史草稿或快照缺少 `practiceCopies` 时按 1 份解释；既有配置和结果不因新默认值变为 20 份。
+
+举一反三使用每母题组合（PER_SOURCE）：按照母题选择顺序，每组依次放原题、同类变式、提升拓展，再进入下一道母题。默认 `1 + 2 + 1`，两道母题共 8 题；每类允许 0–20，每组总数 1–50。母题总数不再手填；仅从题库选题时按已选参考题计数，有附件时总题量保持 `null`，待真实识别/制作服务确定。模拟结果仅保留已选题库母题的顺序与组合，不以文件数推断题数，也不为附件补造母题身份。旧 `sourceQuestionCount` 字段仅保留读取兼容，不参与计数。专项与举一反三保留各自配置职责，举一反三不显示专项份数，未新增页数字段。
 
 `core/skeleton.ts`定义配置/资源及纯校验；`core/workflow.ts`定义任务、提交版本、模拟结果、发布草稿与 `WorkflowPort`。页面只调用 `stores/workflow.ts`，当前端口实现为 `adapters/mock/workflow.ts`，后续通过 `configureWorkflowPort` 注入真实适配器。Mock 的记录查询虽提供分页形状，真实接入仍必须由服务端分页。未新增服务端业务接口。
 
@@ -70,14 +72,14 @@ Mock 读写和导航前会同步其他标签的缓存变更：另一标签退出
 
 `tools/prepare-icons.mjs`从锁定的uview-plus包生成字体资产并保留MIT许可，所有开发/构建前自动运行，不依赖外部CDN。生成文件不入Git。升级组件库后重新生成、检查图标、弹层、字体和三端产物。
 
-微信AppID、DCloud AppID、签名和打包账号未配置，不伪造真实身份。App编译结果不是apk/ipa安装包。无HBuilderX/微信开发者工具验证记录；平台兼容范围不可从H5截图外推。
+安卓环境、测试身份和隔离资源准备见[安卓测试包](android-testing.md)。HBuilderX 安装、账号登录、真实 AppID、签名及 APK 产出状态以该入口指向的本轮工作空间证据为准；资源编译不等于 apk/ipa 安装包。微信开发者工具与设备验证仍需独立记录，平台兼容范围不可从 H5 截图外推。
 
 ## 原型对齐与模拟边界
 
 - 首页提供带标签的多行输入、已选资料、上传/题库/专项入口及独立的举一反三、只录题入口。完整配置在一个独立页面，返回保留当前编辑；题量和教材选择使用弹层。
 - 主操作「提交模拟任务」执行显式 Mock，记录来源为本次实际输入；状态靠演练控件推进，不代表后台 Worker 已运行。草稿保存与提交快照分别处理。
 - 题库四分类和模板仍为示例。模板标注「示例 v1」，学生/答案预览切换时学生节点中移除答案，答案占位为红色；正式模板版本接入后再按真实模板渲染。
-- `core/demo-document.ts`生成可下载的模拟 PDF，仅包含配置、题组顺序及题面/答案占位；答案版默认红色，关闭答案后不产生答案文件。只录题下载 JSON，明确标记未写入正式题库。
+- `core/demo-document.ts`生成可下载的模拟 PDF，仅包含配置、题组顺序及题面/答案占位；专项按当前份输出并注明份序，附件未识别时不补造总题量。答案版默认红色，关闭答案后不产生答案文件。只录题下载 JSON，明确标记未写入正式题库。
 - 发布页保存本设备模拟发布草稿，不对外发布；教学工具入口仍为待接入说明，不读取其他本机业务数据。
 
 详尽 PRD、授权、截图与验收正本仍在知识库工作空间 PRD-100-01-01/02/03。本仓库仅保存运行与维护说明，`docs/initialization.md`保留历史初始化记录，不代表当前状态。
@@ -86,7 +88,7 @@ Mock 读写和导航前会同步其他标签的缓存变更：另一标签退出
 
 先运行 `npm run lint`、`npm run type-check`、`npm test`、`npm run build:all`、`npm run test:architecture`，再安装 Chromium 并运行 `test:ui`、`test:skeleton`、`test:admin`。后者读取 `dist/build/h5`，须在源码变更后重新构建。
 
-`test:ui`维护历史初始化回归（其中“刷新清空”只针对旧基础表单）；`test:skeleton`覆盖 360/390/430/1280 宽度的共享骨架；`test:admin`以独立浏览器上下文覆盖 390/650 宽度及实际输入、母题选择顺序、版本冻结、异常恢复、结果/发布草稿、会话退出、模拟文件下载。测试不向真实后端发请求。
+`test:ui`维护历史初始化回归（其中“刷新清空”只针对旧基础表单）；`test:skeleton`覆盖 360/390/430/1280 宽度的共享骨架、空名称保存与专项默认 20 份；`test:admin`以独立浏览器上下文覆盖 390/650 宽度及实际输入、空名称提交、专项 20 份结果与第 1/2 份下载、母题选择顺序、版本冻结、异常恢复、结果/发布草稿、会话退出。核心测试另覆盖旧单份配置恢复和附件题量未知。测试不向真实后端发请求。
 
 默认报告和截图在忽略提交的 `test-results`，可用 `KB_UI_EVIDENCE_DIR`指定本轮证据目录。测试存在不等于本轮通过，以实际运行输出与 PRD 验收记录为准；编译、浏览器测试、设备验证和用户验收分别记录。
 

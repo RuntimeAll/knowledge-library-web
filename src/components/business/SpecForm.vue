@@ -3,6 +3,7 @@ import { ref } from "vue";
 import { useDraftStore } from "../../stores/draft";
 import { go } from "../../adapters/platform/navigation";
 import KbChips from "../ui/KbChips.vue";
+import PracticeQuantity from "./PracticeQuantity.vue";
 import VariantRecipe from "./VariantRecipe.vue";
 import ContextPicker from "./ContextPicker.vue";
 const draft = useDraftStore();
@@ -14,7 +15,7 @@ const rangeOpen = ref(false);
     <view class="field title-field" data-testid="draft-title"
       ><view class="label-row"
         ><text class="field-label"
-          >资料名称 <text class="required">*</text></text
+          >资料名称 <text class="optional">选填</text></text
         ><button
           v-if="draft.saved"
           class="text-action"
@@ -24,7 +25,7 @@ const rangeOpen = ref(false);
         </button></view
       ><up-input
         v-model="draft.spec.title"
-        placeholder="给这份资料起个名字"
+        placeholder="可选填，留空也可以开始制作"
         maxlength="80"
         border="none"
         :custom-style="{
@@ -33,16 +34,7 @@ const rangeOpen = ref(false);
           borderRadius: '12px',
         }"
     /></view>
-    <view v-if="draft.spec.mode === 'practice'" class="form-row"
-      ><view
-        ><text class="field-label">题目数量</text
-        ><text class="field-hint">这份专项练习的总题数</text></view
-      ><up-number-box
-        v-model="draft.spec.count"
-        :min="1"
-        :max="100"
-        button-size="30"
-    /></view>
+    <PracticeQuantity v-if="draft.spec.mode === 'practice'" />
     <VariantRecipe v-if="draft.spec.mode === 'variant'" />
     <ContextPicker />
     <view v-if="draft.spec.mode !== 'intake'" class="field"
@@ -165,10 +157,6 @@ const rangeOpen = ref(false);
 }
 .text-action::after {
   border: 0;
-}
-.required {
-  color: #a58cd3;
-  font-size: 12px;
 }
 .field-hint {
   display: block;

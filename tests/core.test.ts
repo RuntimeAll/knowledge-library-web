@@ -99,11 +99,18 @@ test("API base refuses embedded credentials and non-HTTP schemes", () => {
 });
 
 // Shared skeleton rules remain independent of Vue, browser and native APIs.
-import { freshDraft, draftError, matchResource } from "../src/core/skeleton";
+import {
+  freshDraft,
+  draftError,
+  matchResource,
+  practiceCopyCount,
+  withDraftDefaults,
+  displayTitle,
+} from "../src/core/skeleton";
 import { sampleResources } from "../src/fixtures/skeleton";
 test("draft validates mode-specific boundaries without changing the input", () => {
   const draft = freshDraft();
-  assert.notEqual(draftError(draft), "");
+  assert.equal(draftError(draft), "");
   draft.title = "课堂练习";
   draft.count = 0;
   assert.notEqual(draftError(draft), "");
@@ -139,4 +146,25 @@ test("library combines category, subject and trimmed search, without mixing reso
     filter("products", "全部", "").every((x) => !x.usable),
     true,
   );
+});
+
+test("practice copies belong only to practice and old snapshots stay single-copy", () => {
+  const spec = freshDraft();
+  assert.equal(spec.practiceCopies, 20);
+  assert.equal(practiceCopyCount(spec), 20);
+  assert.equal(displayTitle(spec, "mock-submission-7"), "专项练习 7");
+  assert.equal(spec.title, "");
+  const legacy = { ...spec };
+  delete legacy.practiceCopies;
+  assert.equal(practiceCopyCount(legacy), 1);
+  assert.equal(withDraftDefaults(legacy).practiceCopies, 1);
+  spec.practiceCopies = 0;
+  assert.match(draftError(spec), /份数/);
+  spec.practiceCopies = 1.5;
+  assert.match(draftError(spec), /份数/);
+  spec.practiceCopies = 101;
+  assert.match(draftError(spec), /份数/);
+  spec.mode = "variant";
+  assert.equal(practiceCopyCount(spec), 1);
+  assert.equal(draftError(spec), "");
 });

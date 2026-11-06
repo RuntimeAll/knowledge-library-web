@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { displayTitle } from "../../core/skeleton";
 import { computed, ref } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import KbPage from "../../components/ui/KbPage.vue";
@@ -37,7 +38,9 @@ onLoad((q) => {
   const existing = workflow.publications.find(
     (item) => item.workOrderId === id.value,
   );
-  title.value = existing?.title || current?.snapshot.title || "";
+  title.value =
+    existing?.title ||
+    (current ? displayTitle(current.snapshot, current.id) : "");
   intro.value = existing?.intro || current?.snapshot.goal || "";
   saved.value = !!existing && existing.resultId === current?.result?.id;
 });
@@ -59,7 +62,9 @@ function save() {
       <view class="kb-card"
         ><text class="publish-label"
           >关联结果 · 第 {{ submission.revision }} 版</text
-        ><text class="publish-title">{{ submission.snapshot.title }}</text
+        ><text class="publish-title">{{
+          displayTitle(submission.snapshot, submission.id)
+        }}</text
         ><text class="publish-copy"
           >本页仅保存模拟发布草稿，不会对外发布或同步到现有发布台。</text
         ></view

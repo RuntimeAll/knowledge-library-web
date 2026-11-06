@@ -10,6 +10,7 @@ function input(overrides: Partial<DraftSpec> = {}): DraftSpec {
   return {
     ...freshDraft(),
     title: "模拟课堂练习",
+    practiceCopies: 1,
     goal: "保持难度，按母题顺序排版",
     ...overrides,
   };
@@ -314,7 +315,7 @@ test("intake emits a receipt without PDF or fake identified question count", () 
     expectCode("NO_PRODUCT"),
   );
 });
-test("uploads require explicit source count for variants; reference order, count bounds and mode requirements are validated", () => {
+test("uploads never infer mother question counts; selected references remain ordered", () => {
   const port = authenticated();
   const attachment = {
     id: "local-file",
@@ -323,26 +324,29 @@ test("uploads require explicit source count for variants; reference order, count
     size: 10,
     path: "local-preview",
   };
-  assert.throws(
-    () =>
-      port.submit(input({ mode: "variant", attachments: [attachment] }), {
-        key: "unknown-count",
-      }),
-    expectCode("INVALID_INPUT"),
+  const onlyUpload = port.submit(
+    input({ mode: "variant", attachments: [attachment] }),
+    { key: "unknown-count" },
   );
-  assert.throws(
-    () =>
-      port.submit(
-        input({
-          mode: "variant",
-          attachments: [attachment],
-          referenceIds: ["preview-q1", "preview-q2"],
-          sourceQuestionCount: 1,
-        }),
-        { key: "wrong-total" },
-      ),
-    expectCode("SOURCE_COUNT_REQUIRED"),
+  const unknown = complete(port, onlyUpload);
+  assert.equal(unknown.result?.totalCount, null);
+  assert.deepEqual(unknown.result?.groups, []);
+  const mixed = port.submit(
+    input({
+      mode: "variant",
+      attachments: [attachment],
+      referenceIds: ["preview-q2", "preview-q1"],
+      sourceQuestionCount: 1,
+    }),
+    { key: "ignored-legacy-count" },
   );
+  const combined = complete(port, mixed);
+  assert.equal(combined.result?.totalCount, null);
+  assert.deepEqual(
+    combined.result?.groups.map((g) => g.sourceId),
+    ["preview-q2", "preview-q1"],
+  );
+  assert.equal(combined.result?.groups.length, 2);
   assert.throws(
     () =>
       port.submit(
@@ -372,18 +376,35 @@ test("uploads require explicit source count for variants; reference order, count
       }),
     expectCode("INVALID_INPUT"),
   );
-  const receipt = port.submit(
-    input({
-      mode: "variant",
-      attachments: [attachment],
-      sourceQuestionCount: 3,
-      originalCount: 0,
-      variantCount: 2,
-      extensionCount: 0,
-    }),
-    { key: "three-sources" },
+});
+test("untitled practice freezes 20 independent sheet structures, preserves optional title and old single-copy submissions", () => {
+  const port = authenticated();
+  const spec = { ...freshDraft(), goal: "同一配置，生成不同题目", count: 3 };
+  const first = port.submit(spec, { key: "twenty-sheets" });
+  const sub = complete(port, first);
+  assert.equal(sub.snapshot.title, "");
+  assert.equal(sub.snapshot.practiceCopies, 20);
+  assert.equal(sub.result?.practiceCopies, 20);
+  assert.equal(sub.result?.totalCount, 60);
+  assert.deepEqual(
+    sub.result?.groups.map((g) => g.copyIndex),
+    Array.from({ length: 20 }, (_, i) => i + 1),
   );
-  assert.equal(complete(port, receipt).result?.totalCount, 6);
+  for (const group of sub.result!.groups)
+    assert.deepEqual(
+      group.items.map((item) => item.ordinal),
+      [1, 2, 3],
+    );
+  spec.practiceCopies = 2;
+  assert.equal(
+    port.view().orders[0].submissions[0].snapshot.practiceCopies,
+    20,
+  );
+  const legacy = input();
+  delete legacy.practiceCopies;
+  const old = complete(port, port.submit(legacy, { key: "old-copy" }));
+  assert.equal(old.result?.practiceCopies, 1);
+  assert.equal(old.result?.totalCount, 10);
 });
 test("publication requires confirmed result and keeps one publication identity across revisions", () => {
   const port = authenticated();

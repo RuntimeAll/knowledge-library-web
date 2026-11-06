@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { displayTitle } from "../../core/skeleton";
 import { computed } from "vue";
 import { currentSubmission, type WorkOrder } from "../../core/workflow";
 import { modeLabels } from "../../core/skeleton";
@@ -21,7 +22,9 @@ const submission = computed(() => currentSubmission(props.order));
         workflowStatusLabel(submission.status)
       }}</text></view
     >
-    <text class="task-title">{{ submission.snapshot.title }}</text>
+    <text class="task-title">{{
+      displayTitle(submission.snapshot, submission.id)
+    }}</text>
     <text class="task-description">{{ submission.statusNote }}</text>
     <view class="task-foot"
       ><text>{{ workflowTime(submission.updatedAt) }}</text

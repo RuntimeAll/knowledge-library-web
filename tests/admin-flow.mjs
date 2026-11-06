@@ -457,7 +457,7 @@ try {
     .fill("做一份有理数基础专项练习，题目由易到难。");
   await button(practice, "专项练习").click();
   await visiblePage(practice, "专项练习");
-  await titleInput(practice).fill("admin 专项与未知提交恢复");
+  await expect(titleInput(practice)).toHaveValue("");
   await button(practice, "演示情景：正常提交").click();
   await button(practice, "提交结果未知").click();
   await button(practice, "提交模拟任务").click();
@@ -490,14 +490,51 @@ try {
   await visiblePage(practice, "制作结果");
   const practiceDone = (await state(practice)).orders[0];
   assert.equal(practiceDone.submissions[0].result.mode, "practice");
-  assert.equal(practiceDone.submissions[0].result.totalCount, 10);
+  assert.equal(practiceDone.submissions[0].snapshot.title, "");
+  await expect(practice.locator(".result-title")).toContainText("专项练习");
+  assert.equal(practiceDone.submissions[0].result.totalCount, 200);
+  assert.equal(practiceDone.submissions[0].snapshot.practiceCopies, 20);
+  assert.equal(practiceDone.submissions[0].result.groups.length, 20);
+  await expect(
+    practice.locator('[data-testid="practice-copy-index"]'),
+  ).toHaveText("第 1 份 / 共 20 份");
+  const practiceFirst = await download(
+    practice,
+    "下载学生版",
+    "admin-practice-sheet-1.pdf",
+  );
+  await button(practice, "下一份").click();
+  await expect(
+    practice.locator('[data-testid="practice-copy-index"]'),
+  ).toHaveText("第 2 份 / 共 20 份");
+  await expect(practice.locator(".result-group:visible")).toHaveCount(1);
+  await expect(practice.locator(".group-items uni-text")).toHaveCount(10);
+  const practiceSecond = await download(
+    practice,
+    "下载学生版",
+    "admin-practice-sheet-2.pdf",
+  );
+  assert.notDeepEqual(practiceFirst, practiceSecond);
+  assert.ok(
+    practiceFirst
+      .toString("latin1")
+      .toUpperCase()
+      .includes(utf16hex("第 1 份 / 共 20 份")),
+  );
+  assert.ok(
+    practiceSecond
+      .toString("latin1")
+      .toUpperCase()
+      .includes(utf16hex("第 2 份 / 共 20 份")),
+  );
   assert.equal(practiceDone.submissions.length, 1);
   await shot(practice, "admin-practice-recovered-390");
   report.scenarios.push({
     name: "practice-goal-only-unknown-failure-materials-review",
     workOrderId: practiceDone.id,
     submissionId: practiceDone.submissions[0].id,
-    totalCount: 10,
+    totalCount: 200,
+    practiceCopies: 20,
     attempts: practiceDone.submissions[0].attempts,
     passed: true,
   });

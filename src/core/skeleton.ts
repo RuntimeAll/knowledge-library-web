@@ -18,6 +18,8 @@ export interface DraftSpec {
   goal: string;
   mode: MakeMode;
   count: number;
+  /** Only used by specialized practice; absent historical snapshots mean one copy. */
+  practiceCopies?: number;
   originalCount: number;
   variantCount: number;
   extensionCount: number;
@@ -27,7 +29,8 @@ export interface DraftSpec {
   chapter: string;
   points: string[];
   templateVersion: string;
-  sourceQuestionCount: number | null;
+  /** Legacy draft field; retained for read compatibility, no longer requested or used. */
+  sourceQuestionCount?: number | null;
   countScope: "PER_SOURCE";
   difficulty: string;
   template: string;
@@ -73,6 +76,7 @@ export function freshDraft(): DraftSpec {
     goal: "",
     mode: "practice",
     count: 10,
+    practiceCopies: 20,
     originalCount: 1,
     variantCount: 2,
     extensionCount: 1,
@@ -82,7 +86,6 @@ export function freshDraft(): DraftSpec {
     chapter: "",
     points: [],
     templateVersion: "示例 v1",
-    sourceQuestionCount: null,
     countScope: "PER_SOURCE",
     difficulty: "保持难度",
     template: "清爽练习",
@@ -93,14 +96,36 @@ export function freshDraft(): DraftSpec {
     referenceIds: [],
   };
 }
+export function displayTitle(
+  spec: Pick<DraftSpec, "title" | "mode">,
+  submissionId?: string,
+): string {
+  return (
+    spec.title.trim() ||
+    `${modeLabels[spec.mode]}${submissionId ? ` ${submissionId.replace(/^mock-submission-/, "")}` : ""}`
+  );
+}
+export function practiceCopyCount(spec: DraftSpec): number {
+  return spec.mode === "practice" ? (spec.practiceCopies ?? 1) : 1;
+}
+/** Restore old saved drafts without silently turning a prior single sheet into 20. */
+export function withDraftDefaults(spec: DraftSpec): DraftSpec {
+  return { ...freshDraft(), ...spec, practiceCopies: spec.practiceCopies ?? 1 };
+}
 export function draftError(draft: DraftSpec): string {
-  if (!draft.title.trim()) return "先给这份资料起个名字";
   if (draft.title.trim().length > 80) return "名称请控制在 80 字以内";
   if (
     draft.mode === "practice" &&
     (!Number.isInteger(draft.count) || draft.count < 1 || draft.count > 100)
   )
     return "题量需为 1～100 的整数";
+  if (
+    draft.mode === "practice" &&
+    (!Number.isInteger(practiceCopyCount(draft)) ||
+      practiceCopyCount(draft) < 1 ||
+      practiceCopyCount(draft) > 100)
+  )
+    return "制作份数需为 1～100 的整数";
   if (
     draft.mode === "variant" &&
     [draft.originalCount, draft.variantCount, draft.extensionCount].some(
@@ -121,12 +146,12 @@ export function recipeSize(draft: DraftSpec): number {
   return draft.originalCount + draft.variantCount + draft.extensionCount;
 }
 export function sourceCount(draft: DraftSpec): number | null {
-  if (draft.attachments.length) return draft.sourceQuestionCount;
+  if (draft.attachments.length) return null;
   return draft.referenceIds.length || null;
 }
 export function totalQuestions(draft: DraftSpec): number | null {
   if (draft.mode === "intake") return sourceCount(draft);
-  if (draft.mode === "practice") return draft.count;
+  if (draft.mode === "practice") return draft.count * practiceCopyCount(draft);
   const count = sourceCount(draft);
   return count === null ? null : count * recipeSize(draft);
 }
@@ -146,9 +171,7 @@ export function submissionError(draft: DraftSpec): string {
     return "请填写制作要求或选择考点";
   if (draft.mode === "variant") {
     if (draft.countScope !== "PER_SOURCE") return "当前变式数量按每道母题计算";
-    const count = sourceCount(draft);
-    if (count === null || !Number.isInteger(count) || count < 1 || count > 100)
-      return "请核对母题数量（1～100道），不能用文件数量代替";
+    if (draft.referenceIds.length > 100) return "每次最多选择 100 道母题";
   }
   return "";
 }

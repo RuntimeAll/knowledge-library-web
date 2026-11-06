@@ -184,10 +184,14 @@ try {
     await expect(page.locator(".attachment-item:visible")).toHaveCount(0);
     await button(page, "专项练习").click();
     await visiblePage(page, "专项练习");
-    await button(page, "提交模拟任务").click();
+    await expect(titleInput(page)).toHaveValue("");
     await expect(
-      page.getByText("先给这份资料起个名字", { exact: true }),
-    ).toBeVisible();
+      page.locator('[data-testid="practice-copies"] input:visible'),
+    ).toHaveValue("20");
+    await expect(page.locator(".recipe-section:visible")).toHaveCount(0);
+    await button(page, "保存草稿").click();
+    await expect(button(page, "用上次配置")).toBeVisible();
+    await expect(titleInput(page)).toHaveValue("");
     const title = "七年级数学 · 本次课堂练习";
     await titleInput(page).fill(title);
     await page
@@ -262,7 +266,7 @@ try {
     await expect(page.locator(".recipe-section:visible")).toBeVisible();
     await expect(
       page.locator('[data-testid="recipe-total"]:visible'),
-    ).toContainText("母题数量待核对");
+    ).toContainText("选择母题后显示总题量");
     await button(page, "调整").click();
     await expect(page.locator(".recipe-sheet:visible")).toBeVisible();
     await button(page, "确认组合").click();
@@ -359,7 +363,7 @@ try {
         "local fonts without external requests",
         "multiple PDF selection, long names and removal",
         "multiple image selection, order and removal",
-        "title validation",
+        "optional title and practice default 20 sheets",
         "textbook chapter and multiple points",
         "student/answer template preview, red answers and return",
         "save and restore draft",

@@ -20,10 +20,6 @@ const recipeError = computed(() =>
         ? "每道母题合计不能超过 50 题"
         : "",
 );
-function setSourceCount(event: Event) {
-  const value = (event as Event & { detail: { value: string } }).detail.value;
-  draft.spec.sourceQuestionCount = value === "" ? null : Number(value);
-}
 </script>
 <template>
   <view class="recipe-section">
@@ -46,22 +42,17 @@ function setSourceCount(event: Event) {
         ><text>提升拓展</text></view
       ></view
     >
-    <view v-if="draft.spec.attachments.length" class="source-count"
-      ><text>本次已核对的母题总数</text
-      ><input
-        class="source-count-input"
-        type="number"
-        :value="draft.spec.sourceQuestionCount ?? ''"
-        placeholder="填写题数"
-        @input="setSourceCount"
-      /><text class="field-hint"
-        >含已选题库母题；文件可能有多道题，不能用文件数代替。</text
-      ></view
-    >
-    <text class="recipe-total" data-testid="recipe-total"
-      >{{ motherCount === null ? "母题数量待核对" : `${motherCount} 道母题` }} ×
-      每道母题 {{ recipeSize(draft.spec) }} 题{{
-        total === null ? "" : ` = 共 ${total} 题`
+    <text
+      v-if="motherCount !== null"
+      class="recipe-total"
+      data-testid="recipe-total"
+      >{{ motherCount }} 道母题 × 每道母题 {{ recipeSize(draft.spec) }} 题 = 共
+      {{ total }} 题</text
+    ><text v-else class="recipe-total" data-testid="recipe-total"
+      >每道母题 {{ recipeSize(draft.spec) }} 题{{
+        draft.spec.attachments.length
+          ? "；附件内容识别后确定总题量"
+          : "；选择母题后显示总题量"
       }}</text
     ><text class="field-hint">按母题所选顺序，逐组生成后依次合并</text
     ><text v-if="recipeError" class="recipe-error">{{ recipeError }}</text>
@@ -192,29 +183,6 @@ function setSourceCount(event: Event) {
   font-size: 11px;
   line-height: 1.7;
   margin-top: 8px;
-}
-.source-count {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding-top: 16px;
-  font-size: 12px;
-  color: #82748d;
-}
-.source-count-input {
-  width: 78px;
-  height: 34px;
-  background: #f7f5fb;
-  border: 1px solid #e7e0f0;
-  border-radius: 9px;
-  text-align: center;
-  font-size: 12px;
-}
-.source-count .field-hint {
-  width: 100%;
-  margin-top: 0;
 }
 .recipe-sheet {
   padding: 26px 24px 20px;

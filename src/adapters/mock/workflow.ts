@@ -1,4 +1,4 @@
-import type { DraftSpec } from "../../core/skeleton";
+import { displayTitle, type DraftSpec } from "../../core/skeleton";
 import {
   availableActions,
   buildResult,
@@ -427,7 +427,9 @@ export class MockWorkflowAdapter implements WorkflowPort {
       .filter((order) => {
         const sub = currentSubmission(order);
         return (
-          sub.snapshot.title.includes((query.query || "").trim()) &&
+          displayTitle(sub.snapshot, sub.id).includes(
+            (query.query || "").trim(),
+          ) &&
           (!query.filter ||
             query.filter === "all" ||
             (query.filter === "done"

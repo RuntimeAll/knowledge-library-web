@@ -1,4 +1,4 @@
-import { modeLabels, type DraftSpec } from "./skeleton";
+import { displayTitle, modeLabels, type DraftSpec } from "./skeleton";
 import type { MockResult, ResultArtifact } from "./workflow";
 export function unicodeHex(value: string): string {
   return Array.from({ length: value.length }, (_, i) =>
@@ -20,23 +20,41 @@ export function demoLines(
   spec: DraftSpec,
   result: MockResult,
   kind: ResultArtifact,
+  copyIndex = 1,
 ): Line[] {
   if (!result.artifacts.includes(kind)) throw new Error("这版结果没有该文件");
+  const copies = result.practiceCopies ?? 1;
+  if (
+    result.mode === "practice" &&
+    (!Number.isInteger(copyIndex) || copyIndex < 1 || copyIndex > copies)
+  )
+    throw new Error("没有这份专项练习");
   const lines: Line[] = [
     {
-      text: `${spec.title} - ${kind === "answer" ? "答案演示" : "学生版演示"}`,
+      text: `${displayTitle(spec, result.submissionId)} - ${kind === "answer" ? "答案演示" : "学生版演示"}`,
       large: true,
     },
     { text: "模拟流程文件：不是正式教学资料，不含真实题面" },
     {
-      text: `模式：${modeLabels[spec.mode]} 总题量：${result.totalCount ?? "待核对"}`,
+      text:
+        result.mode === "practice"
+          ? `专项练习：第 ${copyIndex} 份 / 共 ${copies} 份，每份 ${spec.count} 题`
+          : `模式：${modeLabels[spec.mode]} 总题量：${result.totalCount ?? "附件待识别"}`,
     },
     { text: `模板：${spec.template} ${spec.templateVersion}` },
     { text: `要求：${spec.goal || "未填写"}` },
     { text: `结果：${result.id}` },
     { text: "题号与题组如下，仅用于核对本次配置和顺序：" },
   ];
+  if (result.totalCount === null)
+    lines.push({
+      text: "附件尚未识别，不推断附件内母题数；以下仅为已选题库题结构。",
+    });
+  if (result.mode === "practice")
+    lines.push({ text: "各份同一配置，实际不同题目尚未生成。" });
   for (const group of result.groups) {
+    if (result.mode === "practice" && (group.copyIndex ?? 1) !== copyIndex)
+      continue;
     if (result.mode === "variant")
       lines.push({ text: `第${group.sourceIndex}道母题（${group.sourceId}）` });
     for (const item of group.items) {
@@ -64,8 +82,9 @@ export function buildDemoPdf(
   spec: DraftSpec,
   result: MockResult,
   kind: "student" | "answer",
+  copyIndex = 1,
 ): Uint8Array {
-  const lines = demoLines(spec, result, kind);
+  const lines = demoLines(spec, result, kind, copyIndex);
   const pages: Line[][] = [];
   for (let i = 0; i < lines.length; i += 36) pages.push(lines.slice(i, i + 36));
   const objects: string[] = [];

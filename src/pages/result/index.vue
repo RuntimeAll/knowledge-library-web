@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { displayTitle } from "../../core/skeleton";
+import { computed, ref, watch } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import KbPage from "../../components/ui/KbPage.vue";
 import KbSection from "../../components/ui/KbSection.vue";
@@ -27,6 +28,23 @@ const submission = computed(() =>
   workflow.getSubmission(id.value, selected.value || undefined),
 );
 const result = computed(() => submission.value?.result);
+const selectedCopy = ref(1);
+const copies = computed(() => result.value?.practiceCopies ?? 1);
+const visibleGroups = computed(
+  () =>
+    result.value?.groups.filter(
+      (group) =>
+        result.value?.mode !== "practice" ||
+        (group.copyIndex ?? 1) === selectedCopy.value,
+    ) || [],
+);
+watch(
+  () => result.value?.id,
+  () => {
+    selectedCopy.value = 1;
+  },
+);
+
 const versions = computed(
   () =>
     order.value?.submissions
@@ -79,7 +97,9 @@ function edit() {
       <view class="result-heading"
         ><view class="result-symbol"
           ><up-icon name="checkmark" color="#78b8a7" size="28" /></view
-        ><text class="result-title">{{ submission.snapshot.title }}</text
+        ><text class="result-title">{{
+          displayTitle(submission.snapshot, submission.id)
+        }}</text
         ><text class="result-caption"
           >第 {{ submission.revision }} 版 · {{ result.label }}</text
         ></view
@@ -111,16 +131,32 @@ function edit() {
       <KbSection
         v-else
         title="结果结构预览"
-        :hint="`共 ${result.totalCount} 道 · 按母题选择顺序排列`"
+        :hint="
+          result.mode === 'practice'
+            ? `共 ${copies} 份 · 每份 ${submission.snapshot.count} 道 · 共 ${result.totalCount} 道`
+            : result.totalCount === null
+              ? '附件待识别，总题量待生成'
+              : `共 ${result.totalCount} 道 · 按母题选择顺序排列`
+        "
+        ><view v-if="result.mode === 'practice'" class="practice-copy-selector">
+          <button :disabled="selectedCopy <= 1" @click="selectedCopy--">
+            上一份
+          </button>
+          <text data-testid="practice-copy-index"
+            >第 {{ selectedCopy }} 份 / 共 {{ copies }} 份</text
+          >
+          <button :disabled="selectedCopy >= copies" @click="selectedCopy++">
+            下一份
+          </button> </view
         ><view class="kb-card result-groups"
           ><view
-            v-for="group in result.groups"
+            v-for="group in visibleGroups"
             :key="group.sourceId"
             class="result-group"
             ><text class="group-title">{{
               result.mode === "variant"
                 ? `${group.sourceIndex}. ${sourceName(group.sourceId, group.sourceIndex)}`
-                : "专项练习题组"
+                : `第 ${selectedCopy} 份专项练习`
             }}</text
             ><view class="group-items"
               ><text v-for="item in group.items" :key="item.ordinal"
@@ -128,13 +164,21 @@ function edit() {
                 }}{{ item.index }}</text
               ></view
             ></view
-          ><text class="layout-note"
-            >此处只呈现题目顺序与数量，尚未生成正式题面。</text
-          ></view
+          ><text v-if="result.totalCount === null" class="layout-note"
+            >附件内容尚未识别；这里只展示已选题库母题的结构，不推断附件内题数。</text
+          >
+          <text class="layout-note">{{
+            result.mode === "practice"
+              ? "各份沿用相同要求；当前仅呈现分份结构，实际不同题目待制作服务生成。"
+              : "此处只呈现题目顺序与数量，尚未生成正式题面。"
+          }}</text></view
         ></KbSection
       >
       <KbSection :title="result.mode === 'intake' ? '回执文件' : '文件与版本'"
-        ><ResultFiles :result="result" :spec="submission.snapshot"
+        ><ResultFiles
+          :result="result"
+          :spec="submission.snapshot"
+          :copy-index="selectedCopy"
       /></KbSection>
       <KbSection title="本版配置"
         ><SubmissionSummary :spec="submission.snapshot"
@@ -187,6 +231,31 @@ function edit() {
   </KbPage>
 </template>
 <style scoped>
+.practice-copy-selector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #7c6b9a;
+}
+.practice-copy-selector button {
+  margin: 0;
+  padding: 0 12px;
+  line-height: 36px;
+  background: #efebff;
+  color: #7863b8;
+  font-size: 12px;
+}
+.practice-copy-selector button::after {
+  border: 0;
+}
+.practice-copy-selector button[disabled] {
+  color: #b4afc0;
+  background: #f5f4f8;
+}
+
 .result-heading {
   text-align: center;
   padding: 12px 8px 4px;

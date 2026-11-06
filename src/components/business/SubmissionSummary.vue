@@ -5,6 +5,7 @@ import {
   totalQuestions,
   sourceCount,
   recipeSize,
+  practiceCopyCount,
   type DraftSpec,
 } from "../../core/skeleton";
 const props = defineProps<{ spec: DraftSpec }>();
@@ -35,16 +36,22 @@ const context = computed(() =>
     >
     <view v-if="spec.mode === 'variant'" class="summary-row"
       ><text>题目组合</text
-      ><text
-        >{{ sourceCount(spec) ?? "待核对" }} 道母题 × 每题
-        {{ recipeSize(spec) }} 道，共
-        {{ totalQuestions(spec) ?? "待核对" }} 道；每组原题
-        {{ spec.originalCount }} / 变式 {{ spec.variantCount }} / 提升
-        {{ spec.extensionCount }}</text
-      ></view
+      ><text>
+        每组原题 {{ spec.originalCount }} / 变式 {{ spec.variantCount }} / 提升
+        {{ spec.extensionCount }}；
+        {{
+          sourceCount(spec) === null
+            ? "附件内容待识别，总题量待生成"
+            : `${sourceCount(spec)} 道母题 × 每题 ${recipeSize(spec)} 道，共 ${totalQuestions(spec)} 道`
+        }}
+      </text></view
     >
     <view v-else-if="spec.mode === 'practice'" class="summary-row"
-      ><text>题目数量</text><text>{{ spec.count }} 道</text></view
+      ><text>专项份数与题量</text
+      ><text
+        >{{ practiceCopyCount(spec) }} 份 × 每份 {{ spec.count }} 道，共
+        {{ totalQuestions(spec) }} 道；各份使用相同要求</text
+      ></view
     >
     <view v-if="spec.mode !== 'intake'" class="summary-row"
       ><text>难度</text><text>{{ spec.difficulty }}</text></view

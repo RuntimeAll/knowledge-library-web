@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { displayTitle } from "../../core/skeleton";
 import { computed, ref } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import KbPage from "../../components/ui/KbPage.vue";
@@ -75,7 +76,9 @@ function edit() {
           ><text class="record-status" :class="submission.status">{{
             workflowStatusLabel(submission.status)
           }}</text></view
-        ><text class="record-title">{{ submission.snapshot.title }}</text
+        ><text class="record-title">{{
+          displayTitle(submission.snapshot, submission.id)
+        }}</text
         ><text class="record-note">{{ submission.statusNote }}</text
         ><text class="record-time"
           >更新于 {{ workflowTime(submission.updatedAt) }}</text

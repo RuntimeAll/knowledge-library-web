@@ -4,7 +4,12 @@ import {
   clearDraft,
 } from "../adapters/platform/draft-cache";
 import { defineStore } from "pinia";
-import { freshDraft, type Attachment, type DraftSpec } from "../core/skeleton";
+import {
+  freshDraft,
+  withDraftDefaults,
+  type Attachment,
+  type DraftSpec,
+} from "../core/skeleton";
 export const useDraftStore = defineStore("draft", {
   state: () => ({
     spec: freshDraft(),
@@ -20,7 +25,7 @@ export const useDraftStore = defineStore("draft", {
       this.submissionKey = "";
     },
     beginEdit(spec: DraftSpec, workOrderId: string, revision: number) {
-      this.spec = JSON.parse(JSON.stringify(spec));
+      this.spec = withDraftDefaults(JSON.parse(JSON.stringify(spec)));
       this.editingWorkOrderId = workOrderId;
       this.baseRevision = revision;
       this.submissionKey = "";
@@ -58,7 +63,6 @@ export const useDraftStore = defineStore("draft", {
         }
         this.spec.referenceIds.push(id);
       } else this.spec.referenceIds.splice(at, 1);
-      this.spec.sourceQuestionCount = null;
       return true;
     },
     save(spec?: DraftSpec) {
@@ -67,7 +71,8 @@ export const useDraftStore = defineStore("draft", {
       writeDraft(snapshot);
     },
     restore() {
-      if (this.saved) this.spec = JSON.parse(JSON.stringify(this.saved));
+      if (this.saved)
+        this.spec = withDraftDefaults(JSON.parse(JSON.stringify(this.saved)));
     },
   },
 });

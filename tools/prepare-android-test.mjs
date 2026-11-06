@@ -233,7 +233,8 @@ async function main() {
     if (
       built.id !== options.appid ||
       built.name !== profile.name ||
-      built.plus?.distribute?.android?.packagename !== profile.packageName
+      // The uni-app compiler maps source app-plus.distribute.android to google.
+      built.plus?.distribute?.google?.packagename !== profile.packageName
     )
       throw new Error(
         "Compiled manifest does not match the Android test identity.",

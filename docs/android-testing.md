@@ -8,6 +8,29 @@
 
 HBuilderX 安装和插件状态以本轮工作空间 PRD 证据为准。仅安装 HBuilderX 不表示已登录、已取得 AppID、已生成 APK 或已通过真机。登录密码、短信验证码由本人在官方界面输入，不传给脚本。测试签名及密码保留在本机受限、忽略 Git 的位置，不能写入这个配置文件、源码 manifest、命令行说明或 PR。
 
+## 安装匹配的打包工具
+
+本轮 Mac ARM 环境已安装并用于实际准备流程的版本如下。与项目锁定的 DCloud 编译器 `3.0.0-5030420261029002` 一起维护，升级后重新核验资源与打包结果。
+
+|工具或插件|本轮版本|
+|---|---|
+|HBuilderX（arm64）|5.34.2026102909|
+|app-safe-pack|2.0.0.2026030912|
+|amazon-corretto|21.2.0|
+|launcher|5.34.2026102719.2959|
+|launcher-tools|1.0.3.2026101219|
+
+从 DCloud 官方渠道安装对应 HBuilderX，首次启动后由本人完成 DCloud 登录及 macOS 文稿目录访问授权，再用官方 CLI 安装插件。插件管理器按当前 HBuilderX 版本解析依赖；以下命令不通过手工写入应用包安装插件。
+
+```bash
+/Applications/HBuilderX.app/Contents/MacOS/cli installPlugin --name app-safe-pack
+/Applications/HBuilderX.app/Contents/MacOS/cli installPlugin --name amazon-corretto
+/Applications/HBuilderX.app/Contents/MacOS/cli installPlugin --name launcher
+/Applications/HBuilderX.app/Contents/MacOS/cli installPlugin --name launcher-tools
+```
+
+首次安装这些插件后，保存编辑并正常退出、重新打开 HBuilderX，使编译插件加载。本轮曾在安装完成但未重启时遇到本地编译提示插件未加载，正常重启后账号会话恢复并继续打包；不要据此重复创建云任务。CLI 等待且界面不可操作时，先检查本人是否还未处理系统文稿访问弹窗，不将等待权限直接判断为应用死锁。
+
 ## 准备隔离资源
 
 在 `web-client` 执行：
@@ -21,9 +44,11 @@ node tools/prepare-android-test.mjs --appid "$DCLOUD_TEST_APPID"
 
 实际执行在父工程 `.runtime/work/android-test/<时间>/project` 复制必要源码、连接原工程 `node_modules`、写入测试身份并本地编译。不会修改源 `src/manifest.json`，不会复制 `.env*`、Git 历史、后端或私人配置；外部 `VITE_*` / `UNI_*` 环境变量也不会带入测试构建。输出清单为同批 `preparation.json`，其中 `appResources` 指向 `project/dist/build/app`。该目录是待原生打包的 App 资源，不是 APK。
 
+本轮已用本人账号申请的真实 AppID 完成隔离资源构建，源 manifest 未被准备脚本修改。工具校验编译产物的 `id`、应用名以及 `plus.distribute.google.packagename`；源码中的 Android 分发配置经编译映射到 `google`，不应按源配置路径判断产物失败。实际 AppID 和本批回执保留在工作空间证据中。
+
 可用 `--output` 指定 `.runtime/work/android-test` 下尚不存在的新目录；已有目录会拒绝覆盖。已产生的失败目录与清单保留用于排查，修正后重新生成独立批次。
 
-测试配置关闭 OAID 和启动时读取电话/存储权限申请，不主动增加权限声明或原生模块。图片选择仍可能在调用系统能力时请求权限；最终 APK 的 SDK 合并权限须在打包后核对。CPU、权限和包名字段依据 [DCloud Android manifest 规范](https://uniapp.dcloud.net.cn/collocation/manifest-app.html)。
+测试配置关闭 OAID 和启动时读取电话/存储权限申请。`src/manifest.json` 已启用 `app-plus.modules.Camera`，用于现有 `chooseImage` 拍照与图库选择入口；编译产物已包含 `permissions.Camera`。这不代表设备权限已授予，图片选择仍可能在调用系统能力时请求权限，由用户在设备系统界面确认。最终 APK 的 SDK 合并权限须在打包后核对。CPU、权限和包名字段依据 [DCloud Android manifest 规范](https://uniapp.dcloud.net.cn/collocation/manifest-app.html)。
 
 ## HBuilderX 打包与取回
 

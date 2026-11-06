@@ -22,6 +22,9 @@
     "usingComponents": true
   },
   "app-plus": {
+    "modules": {
+      "Camera": {}
+    },
     "usingComponents": true,
     "nvueStyleCompiler": "uni-app",
     "compilerVersion": 3

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "name": "知识库测试版",
+  "description": "单 admin 模拟流程测试，不包含真实题目制作或发布服务",
+  "packageName": "com.runtimeall.knowledgelibrary.preview",
+  "versionName": "0.1.0",
+  "versionCode": "1",
+  "compilerVersion": "3.0.0-5030420261029002",
+  "android": {
+    "abiFilters": ["arm64-v8a", "armeabi-v7a"],
+    "enableOAID": false,
+    "permissionPhoneState": { "request": "none" },
+    "permissionExternalStorage": { "request": "none" }
+  }
+}

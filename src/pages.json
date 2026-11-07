@@ -1,7 +1,96 @@
 {
   "pages": [
-    { "path": "pages/index/index", "style": { "navigationStyle": "custom" } },
-    { "path": "pages/about/index", "style": { "navigationBarTitleText": "预览说明" } }
+    { "path": "pages/login/index", "style": { "navigationStyle": "custom" } },
+
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/library/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/records/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/mine/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/configure/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/record-detail/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/resource-detail/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/result/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/templates/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/template-preview/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/publication/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/settings/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/tools/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/ui/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+// #ifdef H5
+{"path": "pages/foundation/index", "style": {"navigationStyle": "custom"}},
+{"path": "pages/about/index", "style": {"navigationBarTitleText": "基础预览说明"}}
+// #endif
+
   ],
   "easycom": {
     "autoscan": true,
@@ -14,6 +103,32 @@
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarBackgroundColor": "#ffffff",
-    "backgroundColor": "#f4f6f8"
+    "backgroundColor": "#f7f8fc"
+  },
+  "tabBar": {
+    "color": "#a5a6b8",
+    "selectedColor": "#7963c9",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "工作台",
+        "iconPath": "static/tabs/index.png",
+        "selectedIconPath": "static/tabs/index-active.png"
+      },
+      {
+        "pagePath": "pages/records/index",
+        "text": "记录",
+        "iconPath": "static/tabs/records.png",
+        "selectedIconPath": "static/tabs/records-active.png"
+      },
+      {
+        "pagePath": "pages/mine/index",
+        "text": "我的",
+        "iconPath": "static/tabs/mine.png",
+        "selectedIconPath": "static/tabs/mine-active.png"
+      }
+    ]
   }
 }

@@ -29,7 +29,7 @@ try {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    await page.goto(url);
+    await page.goto(`${url}#/pages/foundation/index`);
     await expect(page.getByText('教学资料，从这里开始。')).toBeVisible();
     await expect(page.getByText('答案示例：已启用红色答案', { exact: true })).toBeHidden();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'no horizontal overflow');
@@ -55,7 +55,7 @@ try {
     await expect(answer).toHaveCount(0);
     await page.locator('uni-button').filter({ hasText: '返回调整' }).click();
     await page.getByText('预览说明与返回验证 →', { exact: true }).click();
-    await expect(page.getByText('基础预览说明', { exact: true })).toBeVisible();
+    await expect(page.getByText('基础预览说明', { exact: true }).last()).toBeVisible();
     await page.locator('uni-button').filter({ hasText: '返回基础预览' }).click();
     await expect(input).toHaveValue('初始化验证');
     await page.getByLabel('选择本机文件').setInputFiles({ name: 'invalid.pdf', mimeType: 'application/pdf', buffer: Buffer.from('not a pdf') });

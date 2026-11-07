@@ -7,3 +7,7 @@ test-results/
 playwright-report/
 *.log
 .DS_Store
+
+# Generated from the locked uview-plus package
+src/generated/
+src/static/app-plus/uview-plus/

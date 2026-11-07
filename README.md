@@ -1,51 +1,38 @@
-# 知识库 Web 用户端
+# 知识库手机任务工作台
 
-PRD-100-01-01 初始化工程。独立于若依管理端，复用现有知识库后端和数据；当前仅提供基础能力预览，业务接口和制作流程尚未联调。
+手机优先的uni-app Vue3 + TypeScript + Pinia + uview-plus应用，Web优先交付，标准App和微信小程序共享业务模型并保持编译兼容。当前主用户入口接真实账号、任务提交、服务端任务记录、异步进度和成品文件；手机不展示题库管理或题目审批。
 
-## 运行
+四种任务为专项练习、举一反三、题目录入和错题收集，各自保留配置。专项默认每次10题、20次练习，制作成同一份资料，通常提供学生版和教师版两个整册文件；教师版答案默认红色。任务数据库、执行端领取/回传和知识库归档由真实后端负责，任务入队不代表生成完成。
 
-Node.js 24（本轮 24.22.1）、npm 11。首次从仓库取回后：
+## 启动与验证
 
-```bash
+```sh
 npm ci
 npm run dev
+# 或预览构建产物（必须是uni-app的H5目录）
+npm run build:h5
+VITE_API_PROXY_TARGET=http://127.0.0.1:18084 npm run preview:h5
 ```
 
-打开 <http://127.0.0.1:5193>。只监听本机回环地址，端口被占用会报错。不会切换现有 5173/8080 服务。
+运行端口默认5193，启动前检查占用；隔离预览可用`npm run preview:h5 -- --port 5195`。开发默认监听回环，preview监听局域网；可访问地址以当次网卡和真实GET结果为准。手机和Mac在同一网络，或使用已授权的USB端口转发。
 
-```bash
+登录页填写真实知识库账号，验证码按后端返回显示。H5同源`/api`由Vite代理转发，App/小程序需另外配置设备可达的VITE_API_BASE_URL。环境配置不包含密码、数据库地址或执行凭据。完整用法、边界和测试见[真实任务入口](docs/real-tasks.md)。
+
+```sh
 npm run lint
 npm run type-check
 npm test
-npm run build
-npx playwright install chromium
-npm run test:ui
+npm run build:all
+npm run test:architecture
+npm run test:client-ui
 ```
 
-生产文件在 `dist/build/h5/`，采用 hash 路由。该目录是构建结果，不提交 Git。本轮仅代码托管，不配置 Pages 或公网部署。浏览器验证会把截图和报告保存到 `test-results/`；GitHub 自动检查暂未配置。
+构建目录：`dist/build/h5`、`dist/build/mp-weixin`、`dist/build/app`。App资源构建不是APK；安卓打包见[安卓测试包](docs/android-testing.md)。App的PDF文件选择目前明确未接原生能力，图片可用；目标真机能力与运行结果独立验收。
 
-## 配置与目录
+## 维护
 
-`.env.example` 是公开配置示例；不填 API 地址也可打开基础预览。需要接入时复制为 `.env.local`，设置 `VITE_API_BASE_URL` 并重新启动或构建，例如同源路径 `/api`。`VITE_WEB_BASE` 控制静态资源部署前缀。所有 `VITE_*` 会进入浏览器产物，严禁填写密码、令牌、签名链接或私有服务器配置。
+新主线使用`core/client-task.ts`、`stores/client-tasks.ts`及`adapters/client`；各模式业务配置组件位于`components/business/client`。领域不依赖Vue/平台对象，平台文件能力各自适配。模板从服务端按任务/练习类型读取已发布适用版本，旧未分类模板不自动放入新筛选。
 
-|目录|职责|
-|---|---|
-|`src/pages`|页面组合及路由上下文|
-|`src/components/ui`|uview-plus 薄封装，不含业务 URL|
-|`src/components/business`|配置预览交互|
-|`src/core`|无 Vue/DOM/uni 依赖的类型、校验和端口|
-|`src/api`|注入请求及会话的客户端，检查若依业务响应码；尚无拟造业务端点|
-|`src/adapters/web`|uni.request、会话、导航、浏览器文件/PDF能力|
-|`src/stores`|本次配置状态；内存保存，刷新清空|
-|`src/styles`|颜色、间距等基础样式|
-|`tests`|核心边界测试与生产构建浏览器检查|
+原Mock业务适配器及单测作为兼容工具保留，主页面没有模拟接收/完成/批准按钮。旧Mock页面自动化脚本不代表当前真实主线验收。页面与持续开发边界见[开发说明](docs/development.md)和[AGENTS](AGENTS.md)；PRD和用户验收正本保留在父知识库工作空间。
 
-文件预览只接受 PDF、PNG、JPEG、GIF，限制 20 MB，检查文件签名字节；不上传文件。PDF 使用浏览器原生 iframe 预览，可下载原字节；浏览器不支持内嵌 PDF 时可下载打开。临时对象 URL 在替换和离开时释放。原生文件输入、图片与 iframe 均隔离在 Web 适配层；没有承诺跨端兼容。答案开关默认开启，预览答案为红色；关闭后从弹层中移除答案节点。
-
-## 模板与组件兼容
-
-基于 [DCloud 官方 Vue3/TS 模板](https://github.com/dcloudio/uni-preset-vue/tree/vite-ts)，起点 commit `f747e3b11c51b3bff6c05e2b54f9a3173a590044`。按[官方 CLI 指南](https://uniapp.dcloud.net.cn/quickstart-cli)取模板，仅保留 Web 编译目标。版本以 `package-lock.json` 为准，不搬用管理端 Vite 版本。
-
-uview-plus 按[官方 npm 配置](https://uview-plus.jiangruyi.com/components/npmSetting.html)设置 SCSS 和 easycom。按钮、输入、开关、弹层直接复用；本机文件及 PDF 预览使用 Web 适配，原因是浏览器 File / Blob / iframe 并非通用跨端能力。具体兼容实测和未覆盖范围见 `docs/initialization.md`。
-
-独立仓库：<https://github.com/RuntimeAll/knowledge-library-web>。项目业务 PRD 和验收正本继续留在现有工作空间；本仓库只维护本应用源码、运行说明和测试。
+源码仓库：[RuntimeAll/knowledge-library-web](https://github.com/RuntimeAll/knowledge-library-web)。

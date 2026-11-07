@@ -18,7 +18,7 @@ export interface DraftSpec {
   goal: string;
   mode: MakeMode;
   count: number;
-  /** Only used by specialized practice; absent historical snapshots mean one copy. */
+  /** Exercise count within one practice book; legacy field name, absent history means one exercise. */
   practiceCopies?: number;
   originalCount: number;
   variantCount: number;

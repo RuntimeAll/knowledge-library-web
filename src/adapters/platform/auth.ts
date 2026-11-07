@@ -1,4 +1,4 @@
-import { useWorkflowStore } from "../../stores/workflow";
+import { useClientTasksStore } from "../../stores/client-tasks";
 const publicPages = new Set([
   "pages/login/index",
   "pages/foundation/index",
@@ -9,10 +9,9 @@ export function ensureSession(): boolean {
   const pages = getCurrentPages();
   const current = pages[pages.length - 1]?.route || "";
   if (!current || publicPages.has(current)) return true;
-  const workflow = useWorkflowStore();
-  workflow.refresh();
-  const session = workflow.session;
-  if (session && session.expiresAt > Date.now()) return true;
+  const client = useClientTasksStore();
+  client.restoreSession();
+  if (client.authenticated) return true;
   if (!redirecting) {
     redirecting = true;
     uni.reLaunch({
@@ -35,10 +34,9 @@ export function installSessionGuard(): void {
       invoke(options: { url?: string }) {
         const path = (options.url || "").replace(/^\//, "").split("?")[0];
         if (publicPages.has(path)) return true;
-        const workflow = useWorkflowStore();
-        workflow.refresh();
-        const session = workflow.session;
-        if (session && session.expiresAt > Date.now()) return true;
+        const client = useClientTasksStore();
+        client.restoreSession();
+        if (client.authenticated) return true;
         uni.reLaunch({ url: "/pages/login/index" });
         return false;
       },

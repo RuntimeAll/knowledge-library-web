@@ -47,10 +47,10 @@ const context = computed(() =>
       </text></view
     >
     <view v-else-if="spec.mode === 'practice'" class="summary-row"
-      ><text>专项份数与题量</text
+      ><text>专项练习次数</text
       ><text
-        >{{ practiceCopyCount(spec) }} 份 × 每份 {{ spec.count }} 道，共
-        {{ totalQuestions(spec) }} 道；各份使用相同要求</text
+        >{{ practiceCopyCount(spec) }} 次 × 每次 {{ spec.count }} 道，共
+        {{ totalQuestions(spec) }} 道；合为一份完整成品</text
       ></view
     >
     <view v-if="spec.mode !== 'intake'" class="summary-row"
@@ -63,7 +63,7 @@ const context = computed(() =>
     <view v-if="spec.mode !== 'intake'" class="summary-row"
       ><text>答案</text
       ><text>{{
-        spec.includeAnswers ? "独立答案 · 红色" : "只要学生版"
+        spec.includeAnswers ? "配套教师版 · 红色答案" : "只要学生版"
       }}</text></view
     >
     <view class="summary-row"

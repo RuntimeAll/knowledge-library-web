@@ -1,346 +1,110 @@
 <script setup lang="ts">
-import { displayTitle } from "../../core/skeleton";
-import { computed, ref, watch } from "vue";
-import { onLoad } from "@dcloudio/uni-app";
+import { computed, ref } from "vue";
+import { onLoad, onShow } from "@dcloudio/uni-app";
 import KbPage from "../../components/ui/KbPage.vue";
-import KbSection from "../../components/ui/KbSection.vue";
 import KbButton from "../../components/ui/KbButton.vue";
-import KbState from "../../components/ui/KbState.vue";
-import KbChips from "../../components/ui/KbChips.vue";
-import ResultFiles from "../../components/business/ResultFiles.vue";
-import SubmissionSummary from "../../components/business/SubmissionSummary.vue";
-import { useWorkflowStore } from "../../stores/workflow";
-import { useDraftStore } from "../../stores/draft";
-import { sampleResources } from "../../fixtures/skeleton";
-import { workflowError } from "../../components/business/workflow-display";
-import { go, notify } from "../../adapters/platform/navigation";
-const workflow = useWorkflowStore();
-const draft = useDraftStore();
-const id = ref("");
-const selected = ref("");
-const error = ref("");
-onLoad((q) => {
-  id.value = q?.id || "";
-  selected.value = q?.submission || "";
+import { useClientTasksStore } from "../../stores/client-tasks";
+import { downloadClientFile } from "../../adapters/client/tasks";
+import type { ClientResultFile } from "../../core/client-task";
+const client = useClientTasksStore(),
+  taskId = ref(""),
+  resultId = ref(""),
+  error = ref(""),
+  busyFile = ref("");
+const task = computed(() => client.details[taskId.value]);
+const result = computed(
+  () =>
+    task.value?.results.find((item) => item.id === resultId.value) ||
+    task.value?.results[0],
+);
+onLoad((query) => {
+  taskId.value = String(query?.order || "");
+  resultId.value = String(query?.result || "");
 });
-const order = computed(() => workflow.getOrder(id.value));
-const submission = computed(() =>
-  workflow.getSubmission(id.value, selected.value || undefined),
-);
-const result = computed(() => submission.value?.result);
-const selectedCopy = ref(1);
-const copies = computed(() => result.value?.practiceCopies ?? 1);
-const visibleGroups = computed(
-  () =>
-    result.value?.groups.filter(
-      (group) =>
-        result.value?.mode !== "practice" ||
-        (group.copyIndex ?? 1) === selectedCopy.value,
-    ) || [],
-);
-watch(
-  () => result.value?.id,
-  () => {
-    selectedCopy.value = 1;
-  },
-);
-
-const versions = computed(
-  () =>
-    order.value?.submissions
-      .filter((sub) => sub.result)
-      .map((sub) => ({ label: `第 ${sub.revision} 版`, value: sub.id })) || [],
-);
-const itemLabels = {
-  original: "原题",
-  variant: "同类变式",
-  extension: "提升拓展",
-  practice: "专项练习",
-};
-function sourceName(sourceId: string, index: number) {
-  return (
-    sampleResources.find((item) => item.id === sourceId)?.title ||
-    `已核对母题 ${index}`
-  );
-}
-function confirm() {
-  if (!submission.value) return;
+onShow(async () => {
+  if (!taskId.value) return;
   try {
-    workflow.confirmResult(id.value, submission.value.id);
-    error.value = "";
-    notify("已确认这份模拟结果");
+    await client.loadDetail(taskId.value);
   } catch (e) {
-    error.value = workflowError(e);
+    error.value = e instanceof Error ? e.message : "结果暂时无法读取";
   }
+});
+function role(file: ClientResultFile) {
+  return file.role === "STUDENT"
+    ? "学生版"
+    : file.role === "ANSWER" || file.role === "TEACHER"
+      ? "教师版"
+      : "成品文件";
 }
-function edit() {
-  if (
-    !submission.value ||
-    !order.value ||
-    submission.value.revision !== order.value.currentRevision
-  )
-    return;
-  draft.beginEdit(
-    submission.value.snapshot,
-    id.value,
-    order.value.currentRevision,
-  );
-  go("/pages/configure/index");
+async function download(file: ClientResultFile) {
+  if (busyFile.value) return;
+  error.value = "";
+  busyFile.value = file.id;
+  try {
+    await downloadClientFile(taskId.value, file.id, file.fileName);
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : "文件暂时无法下载";
+  } finally {
+    busyFile.value = "";
+  }
 }
 </script>
 <template>
-  <KbPage
-    :title="submission?.snapshot.mode === 'intake' ? '录题回执' : '制作结果'"
-    backable
-  >
-    <template v-if="result && submission && order">
-      <view class="result-heading"
-        ><view class="result-symbol"
-          ><up-icon name="checkmark" color="#78b8a7" size="28" /></view
-        ><text class="result-title">{{
-          displayTitle(submission.snapshot, submission.id)
-        }}</text
-        ><text class="result-caption"
-          >第 {{ submission.revision }} 版 · {{ result.label }}</text
-        ></view
-      >
-      <KbSection v-if="versions.length > 1" title="结果版本"
-        ><KbChips
-          :model-value="submission.id"
-          :options="versions"
-          small
-          @update:model-value="
-            selected = $event;
-            error = '';
-          "
-      /></KbSection>
-      <KbSection v-if="result.mode === 'intake'" title="本次录题回执"
-        ><view class="kb-card receipt"
-          ><text>已走完资料接收、整理与回传的演示步骤。</text
-          ><text
-            >题数：{{
-              result.totalCount === null
-                ? "待正式识别核对"
-                : `${result.totalCount} 道参考题`
-            }}</text
-          ><text
-            >没有写入正式题库，也没有授予正式可用或审核通过状态。</text
-          ></view
-        ></KbSection
-      >
-      <KbSection
-        v-else
-        title="结果结构预览"
-        :hint="
-          result.mode === 'practice'
-            ? `共 ${copies} 份 · 每份 ${submission.snapshot.count} 道 · 共 ${result.totalCount} 道`
-            : result.totalCount === null
-              ? '附件待识别，总题量待生成'
-              : `共 ${result.totalCount} 道 · 按母题选择顺序排列`
-        "
-        ><view v-if="result.mode === 'practice'" class="practice-copy-selector">
-          <button :disabled="selectedCopy <= 1" @click="selectedCopy--">
-            上一份
-          </button>
-          <text data-testid="practice-copy-index"
-            >第 {{ selectedCopy }} 份 / 共 {{ copies }} 份</text
-          >
-          <button :disabled="selectedCopy >= copies" @click="selectedCopy++">
-            下一份
-          </button> </view
-        ><view class="kb-card result-groups"
-          ><view
-            v-for="group in visibleGroups"
-            :key="group.sourceId"
-            class="result-group"
-            ><text class="group-title">{{
-              result.mode === "variant"
-                ? `${group.sourceIndex}. ${sourceName(group.sourceId, group.sourceIndex)}`
-                : `第 ${selectedCopy} 份专项练习`
-            }}</text
-            ><view class="group-items"
-              ><text v-for="item in group.items" :key="item.ordinal"
-                >{{ item.ordinal }}. {{ itemLabels[item.kind]
-                }}{{ item.index }}</text
-              ></view
-            ></view
-          ><text v-if="result.totalCount === null" class="layout-note"
-            >附件内容尚未识别；这里只展示已选题库母题的结构，不推断附件内题数。</text
-          >
-          <text class="layout-note">{{
-            result.mode === "practice"
-              ? "各份沿用相同要求；当前仅呈现分份结构，实际不同题目待制作服务生成。"
-              : "此处只呈现题目顺序与数量，尚未生成正式题面。"
+  <KbPage title="制作结果" :subtitle="task?.displayTitle" backable
+    ><text v-if="error" class="client-error">{{ error }}</text
+    ><view v-if="result"
+      ><view class="client-card"
+        ><view class="client-row"
+          ><text class="client-title"
+            >完整成品 · 第 {{ result.resultVersion }} 版</text
+          ><text class="client-status">{{
+            result.state === "READY" ? "已就绪" : result.state
           }}</text></view
-        ></KbSection
-      >
-      <KbSection :title="result.mode === 'intake' ? '回执文件' : '文件与版本'"
-        ><ResultFiles
-          :result="result"
-          :spec="submission.snapshot"
-          :copy-index="selectedCopy"
-      /></KbSection>
-      <KbSection title="本版配置"
-        ><SubmissionSummary :spec="submission.snapshot"
-      /></KbSection>
-      <text v-if="error" class="flow-error">{{ error }}</text>
-      <view class="result-actions"
-        ><KbButton
-          :label="
-            submission.confirmedAt ? '本版模拟结果已确认' : '确认这份模拟结果'
-          "
-          :disabled="!!submission.confirmedAt"
-          @click="confirm" /><view class="result-action"
+        ><text class="client-hint">{{
+          result.summary?.message || "本次处理结果已保存，可查看下方文件。"
+        }}</text
+        ><text v-if="task?.mode === 'PRACTICE'" class="client-hint"
+          >{{
+            task.configSnapshot.modeOptions.copyCount
+          }}
+          次练习编为同一份资料，学生版与教师版分别提供整册文件。</text
+        ></view
+      ><view v-for="file in result.files" :key="file.id" class="client-card"
+        ><text class="client-title">{{ role(file) }}</text
+        ><text class="client-hint">{{ file.fileName }}</text
+        ><text class="client-hint"
+          >{{ (file.size / 1024 / 1024).toFixed(2) }} MB{{
+            file.pageCount ? ` · ${file.pageCount} 页` : ""
+          }}</text
+        ><text v-if="role(file) === '教师版'" class="client-hint"
+          >与学生版配套，答案按制作要求标红。</text
+        ><view class="file-action"
           ><KbButton
-            label="修改配置再提交"
-            secondary
-            :disabled="submission.revision !== order.currentRevision"
-            @click="edit" /></view
-        ><view v-if="result.mode !== 'intake'" class="result-action"
-          ><KbButton
-            label="发布准备"
-            :disabled="!submission.confirmedAt"
-            @click="
-              go(
-                `/pages/publication/index?id=${id}&submission=${submission.id}`,
-              )
-            " /></view
+            :label="`下载整册${role(file)}`"
+            :loading="busyFile === file.id"
+            :disabled="!file.available || (!!busyFile && busyFile !== file.id)"
+            @click="download(file)" /></view></view
+      ><view v-if="!result.files.length" class="client-card"
+        ><text class="client-title">处理回执</text
+        ><text class="client-hint">{{
+          result.summary?.message ||
+          "本次任务返回处理摘要，没有需要下载的成品文件。"
+        }}</text
         ><text
-          v-if="result.mode !== 'intake' && !submission.confirmedAt"
-          class="action-hint"
-          >先确认这版结果，再准备发布资料</text
-        ><view class="result-action"
-          ><KbButton
-            label="查看制作记录"
-            secondary
-            @click="
-              go(
-                `/pages/record-detail/index?id=${id}&submission=${submission.id}`,
-              )
-            " /></view
-      ></view>
-    </template>
-    <KbState
-      v-else
-      state="empty"
-      title="暂无可查看的制作结果"
-      description="请从已完成的模拟记录进入"
-      action="查看记录"
-      @retry="go('/pages/records/index')"
-    />
-  </KbPage>
+          v-if="result.summary?.questionCount !== undefined"
+          class="client-hint"
+          >已处理题目：{{ result.summary.questionCount }}</text
+        ><text
+          v-if="result.summary?.sourceCount !== undefined"
+          class="client-hint"
+          >已保存来源：{{ result.summary.sourceCount }}</text
+        ></view
+      ></view
+    ><view v-else class="client-empty">尚未读取到可取用的结果。</view></KbPage
+  >
 </template>
 <style scoped>
-.practice-copy-selector {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-  font-size: 12px;
-  color: #7c6b9a;
-}
-.practice-copy-selector button {
-  margin: 0;
-  padding: 0 12px;
-  line-height: 36px;
-  background: #efebff;
-  color: #7863b8;
-  font-size: 12px;
-}
-.practice-copy-selector button::after {
-  border: 0;
-}
-.practice-copy-selector button[disabled] {
-  color: #b4afc0;
-  background: #f5f4f8;
-}
-
-.result-heading {
-  text-align: center;
-  padding: 12px 8px 4px;
-}
-.result-symbol {
-  display: inline-flex;
-  padding: 17px;
-  background: #e6f5ef;
-  border-radius: 50%;
-  margin-bottom: 20px;
-}
-.result-title {
-  display: block;
-  font-size: 19px;
-  color: #626880;
-  line-height: 1.7;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-.result-caption {
-  display: block;
-  font-size: 11px;
-  color: #a29aae;
-  margin-top: 10px;
-  line-height: 1.8;
-}
-.result-group {
-  padding: 12px 0;
-  border-bottom: 1px solid #efedf6;
-}
-.result-group:first-child {
-  padding-top: 0;
-}
-.group-title {
-  font-size: 13px;
-  color: #6d6684;
-  font-weight: 600;
-  line-height: 1.8;
-}
-.group-items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 14px 0 4px;
-}
-.group-items text {
-  background: #f4f2fa;
-  color: #8b819e;
-  font-size: 11px;
-  line-height: 1.6;
-  padding: 6px 9px;
-  border-radius: 7px;
-}
-.layout-note {
-  display: block;
-  font-size: 10px;
-  color: #a9a3b5;
-  margin-top: 18px;
-  line-height: 1.8;
-}
-.receipt > text {
-  display: block;
-  font-size: 12px;
-  color: #9290a6;
-  line-height: 1.9;
-  margin: 8px 0;
-}
-.result-actions {
-  margin-top: 24px;
-}
-.result-action {
-  margin-top: 12px;
-}
-.action-hint {
-  display: block;
-  text-align: center;
-  font-size: 11px;
-  color: #a29ab1;
-  margin-top: 12px;
-}
-.flow-error {
-  display: block;
-  color: #bc7777;
-  font-size: 12px;
-  line-height: 1.8;
-  margin-top: 16px;
+.file-action {
+  margin-top: 20px;
 }
 </style>

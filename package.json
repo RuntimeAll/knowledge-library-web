@@ -28,7 +28,9 @@
     "pretype-check": "npm run prepare:assets",
     "format": "prettier --write src tests tools vite.config.ts",
     "test:architecture": "node tools/check-boundaries.mjs",
-    "test:admin": "node tests/admin-flow.mjs"
+    "test:admin": "node tests/admin-flow.mjs",
+    "preview:h5": "vite preview --outDir dist/build/h5 --host 0.0.0.0 --port 5193 --strictPort",
+    "test:client-ui": "node tests/client-ui.mjs"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-5030420261029002",

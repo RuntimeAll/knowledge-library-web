@@ -1,6 +1,5 @@
 export const tabs = [
   "/pages/index/index",
-  "/pages/library/index",
   "/pages/records/index",
   "/pages/mine/index",
 ];

@@ -1,100 +1,73 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { onLoad } from "@dcloudio/uni-app";
+import { onShow } from "@dcloudio/uni-app";
 import KbPage from "../../components/ui/KbPage.vue";
-import PaperPreview from "../../components/business/PaperPreview.vue";
-import { experiences } from "../../fixtures/skeleton";
+import KbChips from "../../components/ui/KbChips.vue";
+import { useClientTasksStore } from "../../stores/client-tasks";
+import { clientModeLabels, type ClientMode } from "../../core/client-task";
 import { go } from "../../adapters/platform/navigation";
-const selecting = ref(false);
-onLoad((q) => {
-  selecting.value = q?.select === "1";
-});
+const client = useClientTasksStore(),
+  error = ref("");
+const modes = Object.entries(clientModeLabels).map(([value, label]) => ({
+  value,
+  label,
+}));
+async function load() {
+  try {
+    error.value = "";
+    await client.loadTemplates();
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : "模板暂时无法读取";
+  }
+}
+async function mode(value: string) {
+  if (client.pending) {
+    error.value = "请先到任务配置查回待确认的提交";
+    return;
+  }
+  client.setMode(value as ClientMode);
+  await load();
+}
+onShow(load);
+function choose(id: string) {
+  if (client.pending) {
+    error.value = "请先到任务配置查回待确认的提交";
+    return;
+  }
+  client.draft.layoutVersionId = id;
+  go("/pages/configure/index");
+}
 </script>
 <template>
-  <KbPage title="排版经验" subtitle="让内容有呼吸，让书写有空间" backable
-    ><text class="kb-preview-note"
-      >示例 v1 · 正式经验模板及已发布版本将在接入后读取</text
+  <KbPage title="排版模板" subtitle="按制作类型匹配已发布的适用版本" backable
+    ><KbChips
+      :model-value="client.draft.mode"
+      :options="modes"
+      small
+      @update:model-value="mode"
+    /><text v-if="error" class="client-error">{{ error }}</text
     ><view
-      v-for="item in experiences"
-      :key="item.name"
-      class="template-card"
-      @click="
-        go(
-          `/pages/template-preview/index?name=${encodeURIComponent(item.name)}&select=${selecting ? '1' : '0'}`,
-        )
-      "
-      ><view class="template-preview" :class="item.tone"
-        ><PaperPreview :name="item.name" compact /></view
-      ><view class="template-info"
-        ><view
-          ><text class="template-name"
-            >{{ item.name }} <text class="template-version">示例 v1</text></text
-          ><text class="template-desc">{{ item.description }}</text></view
-        ><text class="template-tag">{{ item.tag }}</text></view
-      ><view class="template-view"
-        >查看版式
-        <up-icon name="arrow-right" size="10" color="#a296c8" /></view></view
-  ></KbPage>
+      v-for="template in client.templates"
+      :key="template.id"
+      class="client-card template-card"
+      @click="choose(template.id)"
+      ><text class="client-title">{{ template.name }}</text
+      ><text class="client-hint"
+        >第 {{ template.versionNo }} 版 ·
+        {{ clientModeLabels[client.draft.mode] }}</text
+      ><button class="client-action">使用这个版本</button></view
+    ><view v-if="!client.templates.length && !error" class="client-empty">{{
+      client.draft.mode === "INTAKE"
+        ? "题目录入不强制选择排版模板。"
+        : "当前类型尚无已分类的模板，可在任务中说明版式要求。"
+    }}</view></KbPage
+  >
 </template>
 <style scoped>
 .template-card {
-  background: white;
-  border-radius: 22px;
-  overflow: hidden;
-  margin-top: 20px;
+  margin-top: 18px;
 }
-.template-preview {
-  padding: 24px 52px 0;
-  background: #eeebfb;
-  height: 190px;
-  overflow: hidden;
-}
-.template-preview.mint {
-  background: #e8f3ef;
-}
-.template-preview.peach {
-  background: #f8efe8;
-}
-.template-info {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 22px 20px 12px;
-}
-.template-name {
-  display: block;
-  font-size: 16px;
-  color: #68647f;
-  font-weight: 600;
-}
-.template-desc {
-  display: block;
-  font-size: 11px;
-  color: #a7a5b7;
-  margin-top: 8px;
-  line-height: 1.8;
-}
-.template-tag {
-  font-size: 10px;
-  background: #f4f2fa;
-  color: #a49bb8;
-  border-radius: 8px;
-  padding: 6px 9px;
-  flex-shrink: 0;
-  margin-left: 8px;
-}
-.template-view {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  font-size: 11px;
-  color: #a296c8;
-  padding: 0 20px 18px;
-}
-.template-version {
-  font-size: 10px;
-  font-weight: 400;
-  color: #ac9dbb;
-  margin-left: 4px;
+.template-card .client-action {
+  margin-top: 16px;
 }
 </style>

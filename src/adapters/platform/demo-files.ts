@@ -16,7 +16,6 @@ function bytesFor(
   spec: DraftSpec,
   result: MockResult,
   kind: ResultArtifact,
-  copyIndex = 1,
 ): Uint8Array {
   if (!result.artifacts.includes(kind)) throw new Error("这版结果没有该文件");
   if (kind === "receipt")
@@ -42,16 +41,15 @@ function bytesFor(
         2,
       ),
     );
-  return buildDemoPdf(spec, result, kind, copyIndex);
+  return buildDemoPdf(spec, result, kind);
 }
 export function downloadDemoFile(
   spec: DraftSpec,
   result: MockResult,
   kind: ResultArtifact,
-  copyIndex = 1,
 ): void {
-  const bytes = bytesFor(spec, result, kind, copyIndex);
-  const name = `模拟-${displayTitle(spec, result.submissionId).replace(/[\\/:*?"<>|]/g, "-")}${result.mode === "practice" ? `-第${copyIndex}份` : ""}-${kind === "student" ? "学生版" : kind === "answer" ? "答案版" : "录题回执"}.${kind === "receipt" ? "json" : "pdf"}`;
+  const bytes = bytesFor(spec, result, kind);
+  const name = `模拟-${displayTitle(spec, result.submissionId).replace(/[\\/:*?"<>|]/g, "-")}-${kind === "student" ? "学生版" : kind === "answer" ? "教师版" : "录题回执"}.${kind === "receipt" ? "json" : "pdf"}`;
   // #ifdef H5
   const blob = new Blob([new Uint8Array(bytes).buffer], {
     type:

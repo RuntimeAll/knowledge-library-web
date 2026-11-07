@@ -42,34 +42,37 @@ test("mock files are valid PDF bytes bound to this snapshot; student output has 
   assert.notEqual(student, answer);
 });
 
-test("specialized practice files identify their sheet and do not duplicate all sheets into one file", () => {
+test("specialized practice produces one complete student/teacher book, with optional exercise preview", () => {
   const adapter = new MockWorkflowAdapter();
   adapter.login("admin");
-  const spec = { ...freshDraft(), goal: "同一要求下的多份练习", count: 3 };
-  const receipt = adapter.submit(spec, { key: "twenty-file-sheets" });
+  const spec = { ...freshDraft(), goal: "同一要求下的20次练习", count: 3 };
+  const receipt = adapter.submit(spec, { key: "twenty-exercises-one-book" });
   adapter.advance(receipt.workOrderId, receipt.submissionId, "receive");
   const result = adapter.advance(
     receipt.workOrderId,
     receipt.submissionId,
     "complete",
   ).result!;
-  const first = demoLines(spec, result, "student", 1);
-  const second = demoLines(spec, result, "student", 2);
-  assert.ok(first.some((line) => line.text.includes("第 1 份 / 共 20 份")));
-  assert.ok(second.some((line) => line.text.includes("第 2 份 / 共 20 份")));
+  const book = demoLines(spec, result, "student");
+  const preview = demoLines(spec, result, "student", 2);
+  assert.ok(book.some((line) => line.text.includes("共 20 次，每次 3 题")));
   assert.equal(
-    first.filter((line) => line.text.includes("题面占位")).length,
+    book.filter((line) => line.text.includes("题面占位")).length,
+    60,
+  );
+  assert.equal(
+    demoLines(spec, result, "answer").filter((line) => line.red).length,
+    60,
+  );
+  assert.equal(
+    preview.filter((line) => line.text.includes("题面占位")).length,
     3,
   );
-  assert.equal(
-    demoLines(spec, result, "answer", 2).filter((line) => line.red).length,
-    3,
+  assert.ok(preview.some((line) => line.text.includes("第 2 次 / 共 20 次")));
+  const pdf = Buffer.from(buildDemoPdf(spec, result, "student")).toString(
+    "ascii",
   );
-  assert.notDeepEqual(
-    buildDemoPdf(spec, result, "student", 1),
-    buildDemoPdf(spec, result, "student", 2),
-  );
-  assert.ok(first[0].text.startsWith("专项练习 "));
+  assert.ok(pdf.includes(unicodeHex("第 20 次练习")));
   assert.equal(spec.title, "");
-  assert.throws(() => buildDemoPdf(spec, result, "student", 21), /没有这份/);
+  assert.throws(() => demoLines(spec, result, "student", 21), /没有这次/);
 });

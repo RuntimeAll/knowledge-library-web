@@ -2,164 +2,181 @@
 import { ref } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import KbButton from "../../components/ui/KbButton.vue";
-import { useWorkflowStore } from "../../stores/workflow";
+import { useClientTasksStore } from "../../stores/client-tasks";
+import { requestEnvelope, unwrap } from "../../adapters/client/http";
 import { go } from "../../adapters/platform/navigation";
-const workflow = useWorkflowStore();
-const busy = ref(false);
-const error = ref("");
-onShow(() => {
-  if (workflow.session && workflow.session.expiresAt > Date.now())
-    go("/pages/index/index");
+const client = useClientTasksStore();
+const username = ref(""),
+  password = ref(""),
+  code = ref(""),
+  uuid = ref("");
+const captchaEnabled = ref(false),
+  captchaImage = ref(""),
+  busy = ref(false),
+  error = ref("");
+async function captcha() {
+  try {
+    const body = await requestEnvelope<never>(
+      "/captchaImage",
+      "GET",
+      undefined,
+      false,
+    );
+    unwrap(body);
+    const data = body as typeof body & {
+      captchaEnabled?: boolean;
+      img?: string;
+      uuid?: string;
+    };
+    captchaEnabled.value = data.captchaEnabled !== false;
+    uuid.value = data.uuid || "";
+    captchaImage.value = data.img ? `data:image/gif;base64,${data.img}` : "";
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : "登录服务暂时无法连接";
+  }
+}
+onShow(async () => {
+  client.restoreSession();
+  if (client.authenticated) {
+    try {
+      await client.verifySession();
+      go("/pages/index/index");
+      return;
+    } catch {
+      client.logout();
+    }
+  }
+  await captcha();
 });
-function login() {
+async function login() {
   if (busy.value) return;
+  if (!username.value.trim() || !password.value) {
+    error.value = "请输入账号和密码";
+    return;
+  }
+  if (captchaEnabled.value && !code.value.trim()) {
+    error.value = "请输入验证码";
+    return;
+  }
   busy.value = true;
   error.value = "";
   try {
-    workflow.login("admin");
+    await client.login(
+      username.value.trim(),
+      password.value,
+      code.value.trim(),
+      uuid.value,
+    );
+    password.value = "";
     go("/pages/index/index");
   } catch (e) {
-    error.value = e instanceof Error ? e.message : "暂时无法进入，请重试";
+    error.value = e instanceof Error ? e.message : "登录未完成";
+    code.value = "";
+    await captcha();
   } finally {
     busy.value = false;
   }
 }
 </script>
 <template>
-  <view class="login-page"
-    ><view class="login-brand"
-      ><view class="login-mark"
-        ><up-icon name="file-text" color="#7963c9" size="34" /></view
-      ><text class="login-eyebrow">我的教学资料空间</text
-      ><text class="login-title">欢迎回来</text
-      ><text class="login-subtitle">让每次备课，都能从积累中出发。</text></view
-    ><view class="login-card"
-      ><text class="account-label">当前演示账号</text
-      ><view class="account"
-        ><view class="account-avatar">A</view
-        ><view
-          ><text class="account-name">admin</text
-          ><text class="account-role">管理员 · 模拟会话</text></view
-        ><view class="account-check"
-          ><up-icon
-            name="checkmark-circle-fill"
-            color="#8875d2"
-            size="21" /></view></view
-      ><KbButton
-        label="以 admin 进入演示"
-        :loading="busy"
-        @click="login"
-      /><text v-if="error" class="login-error">{{ error }}</text
-      ><text class="login-note"
-        >当前只有一个演示账号，不需要输入真实密码。<text
-          >本轮操作保存在模拟空间，不会写入正式资料库。</text
-        ></text
-      ></view
-    ><text class="login-footer">真实账号登录将在后端联调时接入</text></view
-  >
+  <view class="login-page">
+    <view class="brand"
+      ><view class="brand-icon"
+        ><up-icon name="file-text" size="34" color="#8170c3" /></view
+      ><text class="eyebrow">我的教学资料空间</text
+      ><text class="welcome">欢迎回来</text
+      ><text class="client-hint">发布制作任务，随时回来查看结果。</text></view
+    >
+    <view class="client-card">
+      <text class="client-label">账号</text
+      ><input
+        v-model="username"
+        class="client-input"
+        placeholder="请输入知识库账号"
+        :disabled="busy"
+        autocomplete="username"
+      />
+      <text class="client-label">密码</text
+      ><input
+        v-model="password"
+        class="client-input"
+        password
+        placeholder="请输入密码"
+        :disabled="busy"
+        autocomplete="current-password"
+        @confirm="login"
+      />
+      <view v-if="captchaEnabled"
+        ><text class="client-label">验证码</text
+        ><view class="client-row"
+          ><input
+            v-model="code"
+            class="client-input captcha-input"
+            placeholder="图中验证码"
+            :disabled="busy" /><image
+            v-if="captchaImage"
+            :src="captchaImage"
+            class="captcha-image"
+            mode="aspectFit"
+            @click="captcha" /></view
+      ></view>
+      <text v-if="error" class="client-error">{{ error }}</text>
+      <view class="login-action"
+        ><KbButton label="登录" :loading="busy" @click="login"
+      /></view>
+      <text class="client-hint"
+        >使用现有知识库账号，提交后可离开页面，稍后查看任务进度。</text
+      >
+    </view>
+  </view>
 </template>
 <style scoped>
 .login-page {
   min-height: 100vh;
+  padding: 64px 24px 32px;
   box-sizing: border-box;
-  padding: 72px 24px 32px;
-  background: linear-gradient(160deg, #f0ecfc, #f7f8fc 48%, #f1f6f5);
   max-width: 760px;
-  margin: 0 auto;
+  margin: auto;
+  background: linear-gradient(160deg, #eee9fc, #f7f8fc 52%, #f0f6f5);
 }
-.login-brand {
-  padding: 12px 12px 32px;
+.brand {
+  padding: 12px 12px 28px;
 }
-.login-mark {
+.brand-icon {
   display: inline-flex;
   padding: 18px;
   background: #fffc;
-  border: 1px solid #fff;
   border-radius: 22px;
   margin-bottom: 24px;
 }
-.login-eyebrow {
+.eyebrow {
   display: block;
-  color: #8b82a4;
-  font-size: 13px;
+  font-size: 12px;
+  color: #9388a8;
   letter-spacing: 1px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
-.login-title {
+.welcome {
   display: block;
-  color: #34364f;
   font-size: 32px;
   font-weight: 700;
+  color: #35364e;
 }
-.login-subtitle {
-  display: block;
-  color: #84889e;
-  font-size: 13px;
-  line-height: 1.8;
-  margin-top: 14px;
-}
-.login-card {
-  background: white;
-  border: 1px solid #eeeaf6;
-  border-radius: 24px;
+.client-card {
   padding: 24px;
 }
-.account-label {
-  font-size: 12px;
-  color: #88849d;
+.client-label:first-child {
+  margin-top: 0;
 }
-.account {
-  display: flex;
-  align-items: center;
-  padding: 24px 0 28px;
+.login-action {
+  margin-top: 24px;
 }
-.account-avatar {
-  width: 46px;
-  height: 46px;
-  line-height: 46px;
-  text-align: center;
-  border-radius: 15px;
-  background: #efebfc;
-  color: #8a74cc;
-  margin-right: 14px;
-  font-weight: 600;
+.captcha-input {
+  flex: 1;
+  min-width: 0;
 }
-.account-name {
-  display: block;
-  color: #4e4d66;
-  font-size: 18px;
-  font-weight: 600;
-}
-.account-role {
-  display: block;
-  font-size: 11px;
-  color: #9d96af;
-  margin-top: 7px;
-}
-.account-check {
-  margin-left: auto;
-}
-.login-note {
-  display: block;
-  color: #9390a5;
-  font-size: 11px;
-  line-height: 1.9;
-  margin-top: 20px;
-}
-.login-note text {
-  display: block;
-}
-.login-footer {
-  display: block;
-  text-align: center;
-  font-size: 11px;
-  color: #a6a1b5;
-  margin-top: 28px;
-}
-.login-error {
-  display: block;
-  color: #b3515c;
-  font-size: 12px;
-  margin-top: 14px;
+.captcha-image {
+  width: 112px;
+  height: 44px;
 }
 </style>

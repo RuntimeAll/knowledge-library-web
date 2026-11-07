@@ -8,6 +8,27 @@ export default defineConfig(({ mode }) => {
   return {
     base: env.VITE_WEB_BASE || "/",
     plugins: [UpVite(), uni()],
-    server: { host: "127.0.0.1", port: 5193, strictPort: true },
+    server: {
+      host: "127.0.0.1",
+      port: 5193,
+      strictPort: true,
+      proxy: {
+        "/api": {
+          target: env.VITE_API_PROXY_TARGET || "http://127.0.0.1:18084",
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, ""),
+        },
+      },
+    },
+    preview: {
+      host: "0.0.0.0",
+      proxy: {
+        "/api": {
+          target: env.VITE_API_PROXY_TARGET || "http://127.0.0.1:18084",
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, ""),
+        },
+      },
+    },
   };
 });

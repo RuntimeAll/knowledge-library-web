@@ -118,12 +118,6 @@
         "selectedIconPath": "static/tabs/index-active.png"
       },
       {
-        "pagePath": "pages/library/index",
-        "text": "题库",
-        "iconPath": "static/tabs/library.png",
-        "selectedIconPath": "static/tabs/library-active.png"
-      },
-      {
         "pagePath": "pages/records/index",
         "text": "记录",
         "iconPath": "static/tabs/records.png",

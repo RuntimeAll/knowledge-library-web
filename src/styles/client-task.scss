@@ -1,0 +1,110 @@
+.client-card {
+  background: #fff;
+  border: 1px solid #eeedf5;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.client-label {
+  display: block;
+  color: #55566e;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 18px 0 10px;
+}
+.client-input {
+  background: #f6f6fb;
+  border-radius: 12px;
+  padding: 13px 14px;
+  font-size: 14px;
+  color: #46475d;
+  min-height: 22px;
+}
+.client-textarea {
+  width: 100%;
+  background: #f6f6fb;
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 14px;
+  line-height: 1.8;
+  box-sizing: border-box;
+  height: 130px;
+}
+.client-hint {
+  display: block;
+  color: #9692a8;
+  font-size: 12px;
+  line-height: 1.8;
+  margin-top: 9px;
+  overflow-wrap: anywhere;
+}
+.client-error {
+  display: block;
+  color: #ae5260;
+  background: #fff0f3;
+  border-radius: 12px;
+  padding: 13px;
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 12px 0;
+}
+.client-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.client-row + .client-row {
+  margin-top: 18px;
+}
+.client-title {
+  display: block;
+  font-size: 16px;
+  color: #4d4964;
+  font-weight: 600;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.client-status {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 9px;
+  background: #f0edfb;
+  color: #8067bd;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.client-action {
+  border: 0;
+  background: #f0edfb;
+  color: #8067bd;
+  padding: 6px 14px;
+  margin: 0;
+  border-radius: 10px;
+  line-height: 30px;
+  font-size: 12px;
+}
+.client-action::after {
+  border: 0;
+}
+.client-empty {
+  text-align: center;
+  padding: 38px 16px;
+  color: #a2a0b2;
+  font-size: 13px;
+  line-height: 1.9;
+}
+.client-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+.client-buttons > view {
+  flex: 1;
+  min-width: 0;
+}
+.client-divider {
+  height: 1px;
+  background: #f0edf5;
+  margin: 18px 0;
+}

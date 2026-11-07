@@ -63,7 +63,7 @@ export interface ResultItem {
   ordinal: number;
 }
 export interface ResultGroup {
-  /** Specialized practice sheets have an independent ordinal and shared frozen requirements. */
+  /** Practice groups are exercises within one book; copyIndex is a legacy field name. */
   copyIndex?: number;
   sourceId: string;
   sourceIndex: number;

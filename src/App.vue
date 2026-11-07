@@ -6,6 +6,7 @@ onShow(ensureSession);
 <style lang="scss">
 @import "uview-plus/index.scss";
 @import "./styles/tokens.scss";
+@import "./styles/client-task.scss";
 @import "./generated/icons.scss";
 page {
   background: #f7f8fc;
